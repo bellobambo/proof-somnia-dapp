@@ -9,7 +9,39 @@ export enum UserRole {
   Tutor = 1
 }
 
-// Read hooks
+// Define TypeScript interfaces for contract return types
+export interface Course {
+  id: bigint
+  title: string
+  tutor: `0x${string}`
+  isActive: boolean
+}
+
+export interface User {
+  id: `0x${string}`
+  name: string
+  role: UserRole
+  isActive: boolean
+}
+
+export interface Exam {
+  id: bigint
+  courseId: bigint
+  title: string
+  description: string
+  questionCount: bigint
+  durationMinutes: bigint
+  scheduledDateTime: bigint
+  isActive: boolean
+}
+
+export interface Question {
+  questionText: string
+  options: readonly string[]
+  correctAnswer: bigint
+}
+
+// Read hooks with proper typing
 export function useGetAllCourses() {
   return useReadContract({
     address: CONTRACT_ADDRESS,
@@ -90,7 +122,7 @@ export function useIsExamActive(examId: bigint) {
   })
 }
 
-// Write hooks
+// Write hooks (unchanged)
 export function useRegisterUser() {
   const { writeContract, data: hash, error, isPending } = useWriteContract()
   

@@ -8,7 +8,7 @@ import Link from 'next/link'
 export default function CoursePage() {
   const params = useParams()
   const courseId = BigInt(params.id as string)
-  
+
   const { data: course, isLoading: courseLoading } = useGetCourse(courseId)
   const { data: examIds, isLoading: examsLoading } = useGetExamsForCourse(courseId)
 
@@ -70,9 +70,8 @@ export default function CoursePage() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Status</p>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                course.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${course.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
                 {course.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
@@ -87,7 +86,7 @@ export default function CoursePage() {
               <p className="mt-2 text-gray-600">Loading exams...</p>
             </div>
           ) : (
-            <ExamList examIds={examIds || []} />
+            <ExamList examIds={examIds ? [...examIds] : []} />
           )}
         </div>
       </main>

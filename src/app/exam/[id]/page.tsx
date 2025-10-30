@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import { useAccount } from 'wagmi'
-import { useGetExam, useGetExamQuestion, useStartExam, useSubmitAnswer, useSubmitExam } from '@/hooks/useContract'
+import { useGetExam, useGetExamQuestion, useStartExam, useSubmitAnswer, useSubmitExam, Exam, Question } from '@/hooks/useContract'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
@@ -23,12 +23,16 @@ export default function ExamPage() {
 
   const { data: questionData } = useGetExamQuestion(examId, BigInt(currentQuestion))
 
+  // Type guards to handle the tuple response
+  const typedExam = exam as unknown as Exam
+  const typedQuestionData = questionData as unknown as Question
+
   // Timer effect
   useEffect(() => {
-    if (examStarted && exam && timeRemaining === null) {
-      setTimeRemaining(Number(exam.durationMinutes) * 60) // Convert to seconds
+    if (examStarted && typedExam && timeRemaining === null) {
+      setTimeRemaining(Number(typedExam.durationMinutes) * 60) // Convert to seconds
     }
-  }, [examStarted, exam, timeRemaining])
+  }, [examStarted, typedExam, timeRemaining])
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0) {
@@ -72,7 +76,7 @@ export default function ExamPage() {
     )
   }
 
-  if (!exam) {
+  if (!typedExam) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -89,16 +93,16 @@ export default function ExamPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-md p-8 max-w-md w-full">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">{exam.title}</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">{typedExam.title}</h2>
           <div className="space-y-3 mb-6">
             <p className="text-gray-600">
-              <span className="font-medium">Duration:</span> {exam.durationMinutes.toString()} minutes
+              <span className="font-medium">Duration:</span> {typedExam.durationMinutes.toString()} minutes
             </p>
             <p className="text-gray-600">
-              <span className="font-medium">Questions:</span> {exam.questionCount.toString()}
+              <span className="font-medium">Questions:</span> {typedExam.questionCount.toString()}
             </p>
             <p className="text-gray-600">
-              <span className="font-medium">Scheduled:</span> {new Date(Number(exam.scheduledDateTime) * 1000).toLocaleString()}
+              <span className="font-medium">Scheduled:</span> {new Date(Number(typedExam.scheduledDateTime) * 1000).toLocaleString()}
             </p>
           </div>
           <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
@@ -123,7 +127,7 @@ export default function ExamPage() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">{exam.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{typedExam.title}</h1>
             {timeRemaining !== null && (
               <div className={`text-lg font-mono ${timeRemaining < 300 ? 'text-red-600' : 'text-gray-900'}`}>
                 Time: {formatTime(timeRemaining)}
@@ -137,7 +141,7 @@ export default function ExamPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Question {currentQuestion + 1} of {exam.questionCount.toString()}
+              Question {currentQuestion + 1} of {typedExam.questionCount.toString()}
             </h2>
             <div className="flex gap-2">
               <button
@@ -148,8 +152,8 @@ export default function ExamPage() {
                 Previous
               </button>
               <button
-                onClick={() => setCurrentQuestion(Math.min(Number(exam.questionCount) - 1, currentQuestion + 1))}
-                disabled={currentQuestion >= Number(exam.questionCount) - 1}
+                onClick={() => setCurrentQuestion(Math.min(Number(typedExam.questionCount) - 1, currentQuestion + 1))}
+                disabled={currentQuestion >= Number(typedExam.questionCount) - 1}
                 className="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50"
               >
                 Next
@@ -157,13 +161,13 @@ export default function ExamPage() {
             </div>
           </div>
 
-          {questionData && (
+          {typedQuestionData && (
             <div className="space-y-4">
               <h3 className="text-xl font-medium text-gray-900 mb-4">
-                {questionData.questionText}
+                {typedQuestionData.questionText}
               </h3>
               <div className="space-y-2">
-                {questionData.options.map((option, index) => (
+                {typedQuestionData.options.map((option, index) => (
                   <label
                     key={index}
                     className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
@@ -187,7 +191,7 @@ export default function ExamPage() {
 
           <div className="mt-8 flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              Answered: {Object.keys(answers).length} / {exam.questionCount.toString()}
+              Answered: {Object.keys(answers).length} / {typedExam.questionCount.toString()}
             </div>
             <button
               onClick={handleSubmitExam}
