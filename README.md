@@ -13,7 +13,7 @@ A decentralized education platform built with Next.js and integrated with the Pr
 ## Smart Contract
 
 - **Contract Address**: `0xbf16c7cA893c075758bc18f66d5A993372A6914d`
-- **Network**: Ethereum Mainnet/Sepolia (configurable)
+- **Network**: Somnia Testnet
 
 ## Tech Stack
 
