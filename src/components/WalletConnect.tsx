@@ -31,7 +31,7 @@ export function WalletConnect() {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 mt-[180px]">
       <motion.button
         onClick={() => metamaskConnector && connect({ connector: metamaskConnector })}
         className="px-4 py-3 bg-[#FFFDD0] cursor-pointer text-[#3D441A] rounded-lg transition-colors"

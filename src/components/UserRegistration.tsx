@@ -130,7 +130,7 @@ export function UserRegistration() {
           </motion.button>
         </form>
 
-        {error && (
+        {/* {error && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -141,7 +141,7 @@ export function UserRegistration() {
               Error: {error.message}
             </p>
           </motion.div>
-        )}
+        )} */}
       </motion.div>
     </AnimatePresence>
   )

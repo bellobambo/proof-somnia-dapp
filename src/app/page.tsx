@@ -1,10 +1,10 @@
 'use client'
 
-import { WalletConnect } from "@/components/wallet-connect";
+import { WalletConnect } from "@/components/WalletConnect";
 import { useAccount } from "wagmi";
 import { useGetAllCourses, useIsUserRegistered } from "@/hooks/useContract";
-import { CourseList } from "@/components/course-list";
-import { UserRegistration } from "@/components/user-registration";
+import { CourseList } from "@/components/CourseList";
+import { UserRegistration } from "@/components/UserRegistration";
 
 export default function Home() {
   const { address, isConnected } = useAccount();
@@ -23,8 +23,9 @@ export default function Home() {
           <div className="w-full max-w-7xl space-y-8">
             {registrationLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Checking registration status...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mx-auto shadow-md"></div>
+
+                <p className="mt-2 text-[#FFFDD0]">Checking registration status...</p>
               </div>
             ) : !isRegistered ? (
               <UserRegistration />
@@ -35,8 +36,8 @@ export default function Home() {
                 </h2>
                 {coursesLoading ? (
                   <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                    <p className="mt-2 text-gray-600">Loading courses...</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mx-auto shadow-md"></div>
+                    <p className="mt-2 text-[#FFFDD0]">Loading courses...</p>
                   </div>
                 ) : (
                   <CourseList courses={courses || []} />

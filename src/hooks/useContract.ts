@@ -24,16 +24,18 @@ export interface User {
   isActive: boolean
 }
 
+
 export interface Exam {
-  id: bigint
+  examId: bigint
   courseId: bigint
   title: string
-  description: string
-  questionCount: bigint
-  durationMinutes: bigint
   scheduledDateTime: bigint
+  durationMinutes: bigint
+  questionCount: bigint
   isActive: boolean
+  creator: `0x${string}`
 }
+
 
 export interface Question {
   questionText: string
@@ -266,6 +268,48 @@ export function useSubmitExam() {
 
   return {
     submitExam,
+    hash,
+    error,
+    isPending,
+    isConfirming,
+    isConfirmed,
+  }
+}
+
+export function useCreateExam() {
+  const { writeContract, data: hash, error, isPending } = useWriteContract()
+  
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({ hash })
+
+  const createExam = (
+    courseId: bigint,
+    title: string,
+    scheduledDateTime: bigint,
+    durationMinutes: bigint,
+    questionTexts: string[],
+    optionsArray: string[][],
+    correctAnswerIndices: bigint[]
+  ) => {
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: 'createExam',
+      args: [
+        courseId,
+        title,
+        scheduledDateTime,
+        durationMinutes,
+        questionTexts,
+        optionsArray,
+        correctAnswerIndices,
+      ],
+     
+    })
+  }
+
+  return {
+    createExam,
     hash,
     error,
     isPending,
