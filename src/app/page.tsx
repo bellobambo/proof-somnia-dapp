@@ -12,31 +12,15 @@ export default function Home() {
   const { data: isRegistered, isLoading: registrationLoading } = useIsUserRegistered(address as `0x${string}`);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Proof Education</h1>
-              <p className="text-gray-600">Decentralized Learning Platform</p>
-            </div>
+    <div className="min-h-screen bg-[#3D441A]">
+      {/* Reduced min-h from 80vh to 60vh and added pt-16 for top padding */}
+      <main className="flex flex-col items-center justify-start min-h-[60vh] pt-16 px-4 sm:px-6 lg:px-8">
+        {!isConnected ? (
+          <div className="text-center space-y-6">
             <WalletConnect />
           </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!isConnected ? (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-              Welcome to Proof Education
-            </h2>
-            <p className="text-gray-600 mb-8">
-              Connect your wallet to access courses and take exams on the blockchain
-            </p>
-          </div>
         ) : (
-          <div className="space-y-8">
+          <div className="w-full max-w-7xl space-y-8">
             {registrationLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -46,7 +30,9 @@ export default function Home() {
               <UserRegistration />
             ) : (
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-6">Available Courses</h2>
+                <h2 className="text-2xl font-semibold text-[#FFFDD0] mb-6">
+                  Available Courses
+                </h2>
                 {coursesLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>

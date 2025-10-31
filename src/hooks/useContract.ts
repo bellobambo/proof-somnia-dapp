@@ -5,8 +5,8 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract'
 
 // Define UserRole enum locally
 export enum UserRole {
-  Student = 0,
-  Tutor = 1
+  TUTOR = 0,
+  STUDENT = 1
 }
 
 // Define TypeScript interfaces for contract return types
@@ -160,6 +160,7 @@ export function useCreateCourse() {
       abi: CONTRACT_ABI,
       functionName: 'createCourse',
       args: [title],
+      gas: BigInt(3000000),
     })
   }
 

@@ -1,7 +1,6 @@
 import { http, createConfig } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
-import { injected, metaMask, safe, walletConnect } from 'wagmi/connectors'
-
+import { injected, walletConnect } from 'wagmi/connectors'
 
 const somniaTestnet = {
     id: 50312,
@@ -30,30 +29,27 @@ const somniaTestnet = {
         },
     },
     testnet: true,
-}
+} as const
 
-const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID
-
-if (!projectId) {
-    throw new Error('NEXT_PUBLIC_WC_PROJECT_ID is required')
-}
+const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || ''
 
 export const config = createConfig({
     chains: [somniaTestnet, sepolia],
     connectors: [
         injected(),
-        metaMask(),
-        safe(),
-        walletConnect({
+        ...(projectId ? [walletConnect({
             projectId,
-            showQrModal: true // Optional: enables QR modal for better UX
-        }),
+            showQrModal: true,
+            qrModalOptions: {
+                themeMode: 'light',
+            }
+        })] : []),
     ],
     transports: {
         [somniaTestnet.id]: http(process.env.NEXT_PUBLIC_SOMNIA_TESTNET_RPC_URL),
         [sepolia.id]: http(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL),
     },
-    ssr: true, 
+    ssr: true,
 })
 
 declare module 'wagmi' {

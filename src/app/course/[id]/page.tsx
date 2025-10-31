@@ -47,7 +47,7 @@ export default function CoursePage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
               <p className="text-gray-600">
-                Tutor: {course.tutor.slice(0, 6)}...{course.tutor.slice(-4)}
+                TUTOR: {course.tutor.slice(0, 6)}...{course.tutor.slice(-4)}
               </p>
             </div>
           </div>
