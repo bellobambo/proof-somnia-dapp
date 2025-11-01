@@ -164,3 +164,8 @@ For support and questions:
 - Create an issue on GitHub
 - Check the documentation
 - Review the smart contract ABI for function details
+
+
+
+<!-- right loading state:
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mx-auto shadow-md"></div> -->

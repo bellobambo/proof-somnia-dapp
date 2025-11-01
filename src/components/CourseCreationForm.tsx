@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useCreateCourse } from '@/hooks/useContract'
-import { useAccount, useReadContract } from 'wagmi'
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract'
+import { useCreateCourse, useGetUser, UserRole } from '@/hooks/useContract'
+import { useAccount } from 'wagmi'
 
 interface CourseCreationFormProps {
   onClose: () => void
+}
+
+// Define the User type to match what useGetUser returns
+interface UserData {
+  name: string
+  role: UserRole
+  isRegistered: boolean
 }
 
 export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
@@ -15,26 +21,18 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
   const { address } = useAccount()
   const { createCourse, isPending, isConfirming, isConfirmed, error } = useCreateCourse()
 
-  // Check if user is registered
-  const { data: userData, isLoading: isLoadingUser } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'getUser',
-    args: address ? [address] : undefined,
-  })
+  // Use the custom hook instead of direct useReadContract
+  const { data: userData, isLoading: isLoadingUser } = useGetUser(address as `0x${string}`)
 
-  const { data: isRegistered } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'isUserRegistered',
-    args: address ? [address] : undefined,
-  })
+  // Type assertion for userData
+  const user = userData as UserData | undefined
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (title.trim()) {
-      if (userData?.role === 0 && userData?.isRegistered) {
+      // Check if user is registered and is a TUTOR
+      if (user?.isRegistered && user.role === UserRole.TUTOR) {
         createCourse(title)
       }
     }
@@ -59,11 +57,7 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
         className="bg-[#FFFDD0] rounded-xl shadow-lg p-6 border border-[#3D441A]/10 text-center"
       >
         <div className="flex items-center justify-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="rounded-full h-8 w-8 border-b-2 border-[#3D441A]"
-          />
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#3D441A]/40 border-t-[#3D441A] mx-auto shadow-md"></div>
         </div>
         <p className="text-[#3D441A] mt-4">Checking user registration...</p>
       </motion.div>
@@ -71,7 +65,7 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
   }
 
   // Show registration requirement if not registered
-  if (!isLoadingUser && (!isRegistered || !userData?.isRegistered)) {
+  if (!isLoadingUser && (!user || !user.isRegistered)) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -105,7 +99,8 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
     )
   }
 
-  if (userData && userData.role !== 0) {
+  // Show role requirement if user is not a TUTOR
+  if (user && user.isRegistered && user.role !== UserRole.TUTOR) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -168,9 +163,9 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
           stiffness: 400,
           damping: 25
         }}
-        className="bg-[#FFFDD0] rounded-xl  shadow-lg p-8 border border-[#3D441A]/10"
+        className="bg-[#FFFDD0] rounded-xl shadow-lg p-8 border border-[#3D441A]/10"
       >
-        <div className="flex justify-between  items-center mb-4">
+        <div className="flex justify-between items-center mb-4">
           <motion.h2
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -273,11 +268,7 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
             >
               {isPending || isConfirming ? (
                 <span className="flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="rounded-full h-4 w-4 border-b-2 border-[#FFFDD0] mr-2"
-                  />
+                  <div className="animate-spin rounded-full h-6 w-6 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mr-2"></div>
                   {isPending ? 'Creating...' : 'Confirming...'}
                 </span>
               ) : (

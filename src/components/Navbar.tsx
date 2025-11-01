@@ -105,13 +105,13 @@ export function UserStatus() {
                 <span>{roleIcon}</span>
                 {isTutor ? 'TUTOR' : 'STUDENT'}
               </span>
-              <span className="text-xs text-[#3D441A]/70">
+              {/* <span className="text-xs text-[#3D441A]/70">
                 Registered {new Date(Number(user.registrationTimestamp) * 1000).toLocaleDateString()}
-              </span>
+              </span> */}
             </div>
           </div>
         </div>
-        
+
         <div className="text-right">
           <p className="text-xs text-[#3D441A]/60 font-mono">
             {address?.slice(0, 6)}...{address?.slice(-4)}
@@ -140,11 +140,8 @@ export function UserStatusCompact() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-[#FFFDD0] rounded-lg border border-[#3D441A]/20">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-3 h-3 border-2 border-[#3D441A] border-t-transparent rounded-full"
-        ></motion.div>
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mx-auto shadow-md"></div>
+
         <span className="text-sm text-[#3D441A]">Loading...</span>
       </div>
     )

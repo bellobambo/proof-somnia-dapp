@@ -2,6 +2,7 @@
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/lib/contract'
+import { useEffect } from 'react'
 
 // Define UserRole enum locally
 export enum UserRole {
@@ -11,36 +12,32 @@ export enum UserRole {
 
 // Define TypeScript interfaces for contract return types
 export interface Course {
-  id: bigint
+  courseId: bigint
   title: string
   tutor: `0x${string}`
   isActive: boolean
 }
 
 export interface User {
-  id: `0x${string}`
   name: string
   role: UserRole
-  isActive: boolean
+  isRegistered: boolean
 }
-
 
 export interface Exam {
   examId: bigint
   courseId: bigint
   title: string
-  scheduledDateTime: bigint
-  durationMinutes: bigint
   questionCount: bigint
   isActive: boolean
   creator: `0x${string}`
 }
 
-
-export interface Question {
-  questionText: string
-  options: readonly string[]
-  correctAnswer: bigint
+export interface ExamSession {
+  examId: bigint
+  student: `0x${string}`
+  score: bigint
+  isCompleted: boolean
 }
 
 // Read hooks with proper typing
@@ -49,6 +46,22 @@ export function useGetAllCourses() {
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getAllCourses',
+  })
+}
+
+// Hook to get available exams for student - with enabled option
+export function useGetAvailableExamsForStudent(
+  studentAddress: `0x${string}` | undefined,
+  options?: { query?: { enabled?: boolean } }
+) {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getAvailableExamsForStudent',
+    args: studentAddress ? [studentAddress] : undefined,
+    query: {
+      enabled: options?.query?.enabled ?? !!studentAddress,
+    },
   })
 }
 
@@ -61,12 +74,15 @@ export function useGetCourse(courseId: bigint) {
   })
 }
 
-export function useGetUser(userAddress: `0x${string}`) {
+export function useGetUser(userAddress: `0x${string}` | undefined) {
   return useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getUser',
-    args: [userAddress],
+    args: userAddress ? [userAddress] : undefined,
+    query: {
+      enabled: !!userAddress,
+    },
   })
 }
 
@@ -76,15 +92,6 @@ export function useIsUserRegistered(userAddress: `0x${string}`) {
     abi: CONTRACT_ABI,
     functionName: 'isUserRegistered',
     args: [userAddress],
-  })
-}
-
-export function useGetStudentEnrollments(studentAddress: `0x${string}`) {
-  return useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'getStudentEnrollments',
-    args: [studentAddress],
   })
 }
 
@@ -106,25 +113,48 @@ export function useGetExam(examId: bigint) {
   })
 }
 
-export function useGetExamQuestion(examId: bigint, questionIndex: bigint) {
+export function useGetExamQuestions(examId: bigint) {
   return useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
-    functionName: 'getExamQuestion',
-    args: [examId, questionIndex],
-  })
-}
-
-export function useIsExamActive(examId: bigint) {
-  return useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'isExamActive',
+    functionName: 'getExamQuestions',
     args: [examId],
   })
 }
 
-// Write hooks (unchanged)
+export function useGetExamResults(examId: bigint, student: `0x${string}` | undefined) {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getExamResults',
+    args: student ? [examId, student] : undefined,
+    query: {
+      enabled: !!student,
+    },
+  })
+}
+
+export function useIsEnrolledInCourse(courseId: bigint, student: `0x${string}` | undefined) {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'isEnrolledInCourse',
+    args: student ? [courseId, student] : undefined,
+    query: {
+      enabled: !!student,
+    },
+  })
+}
+
+export function useGetAllExams() {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getAllExams',
+  })
+}
+
+// Write hooks
 export function useRegisterUser() {
   const { writeContract, data: hash, error, isPending } = useWriteContract()
   
@@ -162,7 +192,6 @@ export function useCreateCourse() {
       abi: CONTRACT_ABI,
       functionName: 'createCourse',
       args: [title],
-      gas: BigInt(3000000),
     })
   }
 
@@ -201,73 +230,23 @@ export function useEnrollInCourse() {
   }
 }
 
-export function useStartExam() {
+export function useTakeExam() {
   const { writeContract, data: hash, error, isPending } = useWriteContract()
   
   const { isLoading: isConfirming, isSuccess: isConfirmed } = 
     useWaitForTransactionReceipt({ hash })
 
-  const startExam = (examId: bigint) => {
+  const takeExam = (examId: bigint, answers: boolean[]) => {
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
-      functionName: 'startExam',
-      args: [examId],
+      functionName: 'takeExam',
+      args: [examId, answers],
     })
   }
 
   return {
-    startExam,
-    hash,
-    error,
-    isPending,
-    isConfirming,
-    isConfirmed,
-  }
-}
-
-export function useSubmitAnswer() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract()
-  
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = 
-    useWaitForTransactionReceipt({ hash })
-
-  const submitAnswer = (examId: bigint, questionIndex: bigint, answerIndex: bigint) => {
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: 'submitAnswer',
-      args: [examId, questionIndex, answerIndex],
-    })
-  }
-
-  return {
-    submitAnswer,
-    hash,
-    error,
-    isPending,
-    isConfirming,
-    isConfirmed,
-  }
-}
-
-export function useSubmitExam() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract()
-  
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = 
-    useWaitForTransactionReceipt({ hash })
-
-  const submitExam = (examId: bigint) => {
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: 'submitExam',
-      args: [examId],
-    })
-  }
-
-  return {
-    submitExam,
+    takeExam,
     hash,
     error,
     isPending,
@@ -285,12 +264,16 @@ export function useCreateExam() {
   const createExam = (
     courseId: bigint,
     title: string,
-    scheduledDateTime: bigint,
-    durationMinutes: bigint,
     questionTexts: string[],
-    optionsArray: string[][],
-    correctAnswerIndices: bigint[]
+    correctAnswers: boolean[]
   ) => {
+    console.log('📊 useCreateExam - Before writeContract:', {
+      courseId: courseId.toString(),
+      title,
+      questionCount: questionTexts.length,
+      correctAnswers
+    })
+
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
@@ -298,15 +281,22 @@ export function useCreateExam() {
       args: [
         courseId,
         title,
-        scheduledDateTime,
-        durationMinutes,
         questionTexts,
-        optionsArray,
-        correctAnswerIndices,
+        correctAnswers,
       ],
-     
     })
   }
+
+  // Log state changes
+  useEffect(() => {
+    console.log('📊 useCreateExam state changed:', {
+      isPending,
+      isConfirming, 
+      isConfirmed,
+      error,
+      hash
+    })
+  }, [isPending, isConfirming, isConfirmed, error, hash])
 
   return {
     createExam,
@@ -317,3 +307,4 @@ export function useCreateExam() {
     isConfirmed,
   }
 }
+
