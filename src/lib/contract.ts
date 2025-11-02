@@ -1,5 +1,5 @@
 export const CONTRACT_ADDRESS =
-  "0xcDFb1272Fad230337C553e8c5649d5C5cf361f03" as `0x${string}`;
+  "0x679fe529386Cf51cdE8bAe21FE9Bb9099E4B4Bd4" as `0x${string}`;
 
 export const CONTRACT_ABI = [
   {
@@ -206,6 +206,11 @@ export const CONTRACT_ABI = [
         internalType: "address",
         name: "tutor",
         type: "address",
+      },
+      {
+        internalType: "string",
+        name: "tutorName",
+        type: "string",
       },
       {
         internalType: "bool",
@@ -436,6 +441,11 @@ export const CONTRACT_ABI = [
             type: "address",
           },
           {
+            internalType: "string",
+            name: "tutorName",
+            type: "string",
+          },
+          {
             internalType: "bool",
             name: "isActive",
             type: "bool",
@@ -573,6 +583,11 @@ export const CONTRACT_ABI = [
             type: "address",
           },
           {
+            internalType: "string",
+            name: "tutorName",
+            type: "string",
+          },
+          {
             internalType: "bool",
             name: "isActive",
             type: "bool",
@@ -581,6 +596,45 @@ export const CONTRACT_ABI = [
         internalType: "struct ProofSmartContract.Course",
         name: "",
         type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "courseId",
+        type: "uint256",
+      },
+    ],
+    name: "getCourseWithLecturer",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "id",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "title",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "tutor",
+        type: "address",
+      },
+      {
+        internalType: "string",
+        name: "tutorName",
+        type: "string",
+      },
+      {
+        internalType: "bool",
+        name: "isActive",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -673,7 +727,7 @@ export const CONTRACT_ABI = [
     outputs: [
       {
         internalType: "uint256",
-        name: "score",
+        name: "rawScore",
         type: "uint256",
       },
       {
@@ -713,6 +767,96 @@ export const CONTRACT_ABI = [
     inputs: [
       {
         internalType: "address",
+        name: "student",
+        type: "address",
+      },
+    ],
+    name: "getExamsWithStatusForStudent",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "examId",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "courseId",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "title",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "questionCount",
+            type: "uint256",
+          },
+          {
+            internalType: "bool",
+            name: "isActive",
+            type: "bool",
+          },
+          {
+            internalType: "address",
+            name: "creator",
+            type: "address",
+          },
+        ],
+        internalType: "struct ProofSmartContract.Exam[]",
+        name: "availableExams",
+        type: "tuple[]",
+      },
+      {
+        internalType: "bool[]",
+        name: "completionStatus",
+        type: "bool[]",
+      },
+      {
+        internalType: "uint256[]",
+        name: "scores",
+        type: "uint256[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "examId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "student",
+        type: "address",
+      },
+    ],
+    name: "getStudentExamScore",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "rawScore",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "isCompleted",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
         name: "userAddress",
         type: "address",
       },
@@ -740,6 +884,30 @@ export const CONTRACT_ABI = [
         internalType: "struct ProofSmartContract.User",
         name: "",
         type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "examId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "student",
+        type: "address",
+      },
+    ],
+    name: "hasCompletedExam",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
@@ -839,7 +1007,13 @@ export const CONTRACT_ABI = [
       },
     ],
     name: "takeExam",
-    outputs: [],
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "rawScore",
+        type: "uint256",
+      },
+    ],
     stateMutability: "nonpayable",
     type: "function",
   },

@@ -1,108 +1,348 @@
 'use client'
 
-import { useGetAvailableExamsForStudent, useGetAllCourses, useGetAllExams, useGetUser, UserRole, Exam } from '@/hooks/useContract'
+import {
+  useGetAvailableExamsForStudent,
+  useGetAllExams,
+  useGetUser,
+  useHasCompletedExam,
+  useGetStudentExamScore,
+  useGetExamsWithStatusForStudent,
+  parseExamScore,
+  parseExamsWithStatus,
+  calculatePercentageScore,
+  getGradeLetter,
+  UserRole,
+  Exam,
+  ExamWithStatus
+} from '@/hooks/useContract'
 import { useAccount } from 'wagmi'
 import { motion } from 'framer-motion'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import ExamDrawer from './ExamDrawer'
 
 export default function ExamsList() {
   const { address, isConnected } = useAccount()
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
+  const [isExamDrawerOpen, setIsExamDrawerOpen] = useState(false)
 
-  // Only fetch user data if address exists
   const { data: user } = useGetUser(address as `0x${string}`)
-  
   const isTutor = user?.role === UserRole.TUTOR
 
-  // For students: use the optimized function
-  const { data: studentExams, isLoading: studentLoading, isError: studentError, error: studentErrorMsg } = 
-    useGetAvailableExamsForStudent(address as `0x${string}`, {
+  // For students: use the optimized function with status
+  const { data: examsWithStatusData, isLoading: studentLoading, isError: studentError, error: studentErrorMsg } =
+    useGetExamsWithStatusForStudent(address as `0x${string}`, {
       query: {
         enabled: !!address && !isTutor,
       }
     })
 
+  // Parse the exams with status data
+  const examsWithStatus = useMemo(() => {
+    return parseExamsWithStatus(examsWithStatusData) || []
+  }, [examsWithStatusData])
+
+  // Extract just the exams array for student view
+  const studentExams = useMemo(() => {
+    return examsWithStatus.map(item => item.exam)
+  }, [examsWithStatus])
+
   // For tutors: fetch all exams and filter by creator
   const { data: allExams, isLoading: allExamsLoading } = useGetAllExams()
 
-  // Get tutor's exams
   const tutorExams = useMemo(() => {
     if (!allExams || !address || !isTutor) return []
-    return allExams.filter(exam => 
+    return allExams.filter(exam =>
       exam.creator.toLowerCase() === address.toLowerCase()
     )
   }, [allExams, address, isTutor])
 
-  // Use the appropriate data based on role
   const exams = isTutor ? tutorExams : studentExams
   const isLoading = isTutor ? allExamsLoading : studentLoading
   const isError = !isTutor && studentError
   const error = studentErrorMsg
 
-  // Console logs for debugging
-  console.log('🔍 ExamsList Debug:', {
-    address,
-    isConnected,
-    user,
-    isTutor,
-    studentExams,
-    tutorExams,
-    allExams,
-    isLoading,
-    isError,
-    error,
-  })
+  const handleExamCompleted = (score: number, totalQuestions: number) => {
+    console.log(`Exam completed! Score: ${score}/${totalQuestions}`)
+    // Refresh the page to update scores
+    window.location.reload()
+  }
 
-  // Filter exams based on selected filter
-  const filteredExams = useMemo(() => {
-    if (!exams) return []
-    
-    const examsList = exams as readonly Exam[]
+  // Exam Card Component with Enhanced Score Display
+  const ExamCard = ({ exam, index }: { exam: Exam; index: number }) => {
+    // For students, get completion status and score from the pre-fetched data
+    const examStatus = useMemo(() => {
+      if (isTutor) return null
+      return examsWithStatus.find(item => 
+        item.exam.examId.toString() === exam.examId.toString()
+      )
+    }, [examsWithStatus, exam.examId, isTutor])
 
-    switch (filter) {
-      case 'active':
-        return examsList.filter(exam => exam.isActive)
-      case 'inactive':
-        return examsList.filter(exam => !exam.isActive)
-      default:
-        return examsList
+    // For individual score fetching (fallback)
+    const { data: examScoreData, isLoading: scoreLoading, error: scoreError } = useGetStudentExamScore(
+      exam.examId,
+      !isTutor ? (address as `0x${string}`) : undefined,
+      {
+        query: {
+          enabled: !isTutor && !!address && !examStatus,
+        }
+      }
+    )
+
+    const examScore = parseExamScore(examScoreData)
+
+    // Use pre-fetched status first, then fallback to individual query
+    const isCompleted = examStatus?.completionStatus || examScore?.isCompleted || false
+    const rawScore = examStatus?.score || examScore?.rawScore || BigInt(0)
+
+    const totalQuestions = Number(exam.questionCount)
+
+    // Calculate percentage from raw score
+    const scorePercentage = totalQuestions > 0 
+      ? calculatePercentageScore(rawScore, BigInt(totalQuestions))
+      : 0
+
+    const isLoadingResults = scoreLoading && !examStatus
+
+    console.log('🎯 ExamCard Debug:', {
+      examId: exam.examId.toString(),
+      examStatus,
+      examScoreData,
+      examScore,
+      rawScore: rawScore.toString(),
+      scorePercentage,
+      totalQuestions,
+      isCompleted,
+      isLoadingResults
+    })
+
+    // Only show score if exam is actually completed
+    const shouldShowScore = isCompleted && totalQuestions > 0
+
+    // Determine pass status
+    const getPassStatus = (percentage: number) => {
+      if (percentage >= 70) return { label: 'Pass', color: 'bg-green-600' }
+      if (percentage >= 50) return { label: 'Average', color: 'bg-yellow-500' }
+      return { label: 'Fail', color: 'bg-red-500' }
     }
-  }, [exams, filter])
 
-  // Handle not connected state
-  if (!isConnected || !address) {
+    const passStatus = shouldShowScore
+      ? getPassStatus(scorePercentage)
+      : null
+
     return (
-      <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center p-4">
-        <div className="bg-[#FFFDD0] rounded-xl shadow-lg p-8 max-w-md text-center">
-          <h3 className="text-2xl font-bold text-[#3D441A] mb-4">Wallet Not Connected</h3>
-          <p className="text-[#3D441A]/80 mb-6">Please connect your wallet to view exams.</p>
-          <Link
-            href="/"
-            className="inline-block bg-[#3D441A] text-[#FFFDD0] py-2 px-6 rounded-lg hover:bg-[#3D441A]/90 transition-colors font-medium"
-          >
-            Go Back Home
-          </Link>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="bg-[#FFFDD0] rounded-xl shadow-lg p-6 border-2 border-[#3D441A]"
+      >
+        {/* Status Badges Row */}
+        <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${exam.isActive
+            ? 'border-2 border-[#3D441A] text-[#3D441A]'
+            : 'bg-gray-400 text-white'
+            }`}>
+            {exam.isActive ? '✓ Active' : '✗ Inactive'}
+          </span>
+
+          {isTutor && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+              👨‍🏫 Your Exam
+            </span>
+          )}
+
+          {!isTutor && isLoadingResults && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-300 text-gray-600">
+              <svg className="animate-spin h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading...
+            </span>
+          )}
+
+          {!isTutor && !isLoadingResults && isCompleted && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white">
+              ✓ Completed
+            </span>
+          )}
+
+          {!isTutor && !isLoadingResults && !isCompleted && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-400 text-white">
+              📝 Pending
+            </span>
+          )}
         </div>
-      </div>
+
+        {/* Exam Title */}
+        <h3 className="text-xl font-semibold text-[#3D441A] mb-3">
+          {exam.title}
+        </h3>
+
+        {/* Exam Details */}
+        <div className="space-y-2 text-sm text-[#3D441A]/80 mb-4">
+          <p>
+            <strong>Exam ID:</strong> {exam.examId.toString()}
+          </p>
+          <p>
+            <strong>Course ID:</strong> {exam.courseId.toString()}
+          </p>
+          <p>
+            <strong>Questions:</strong> {exam.questionCount.toString()}
+          </p>
+
+          {isTutor && (
+            <p className="text-xs break-all">
+              <strong>Creator:</strong> {exam.creator.slice(0, 6)}...{exam.creator.slice(-4)}
+            </p>
+          )}
+        </div>
+
+        {/* Enhanced Score Display for Students - Only show when shouldShowScore is true */}
+        {!isTutor && shouldShowScore && !isLoadingResults && (
+          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl p-4 mt-4 mb-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-green-800 font-semibold text-sm flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Your Score
+              </span>
+              {passStatus && (
+                <span className={`px-2 py-1 rounded-full text-xs font-bold text-white ${passStatus.color}`}>
+                  {passStatus.label}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-4xl font-bold text-green-800">
+                {Number(rawScore).toString()}
+              </span>
+              <span className="text-2xl text-green-600">
+                / {totalQuestions}
+              </span>
+            </div>
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs text-green-700 mb-1">
+                <span>Percentage</span>
+                <span className="font-semibold">{scorePercentage}%</span>
+              </div>
+              <div className="w-full bg-green-200 rounded-full h-2.5 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${scorePercentage}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="bg-green-600 h-full rounded-full"
+                />
+              </div>
+              <div className="mt-1 text-xs text-green-600 text-center">
+                Grade: {getGradeLetter(scorePercentage)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Not Taken Yet Message - Show when not completed */}
+        {!isTutor && !isCompleted && !isLoadingResults && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+            <p className="text-orange-700 text-sm font-medium flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Exam not taken yet
+            </p>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {!isTutor && scoreError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-red-700 text-xs flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Error loading results
+            </p>
+          </div>
+        )}
+
+        {/* Loading State for Results */}
+        {!isTutor && isLoadingResults && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center gap-2 text-gray-600 text-sm">
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading results...
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          {!isTutor && exam.isActive && !isCompleted && !isLoadingResults && (
+            <motion.button
+              onClick={() => {
+                setSelectedExam(exam)
+                setIsExamDrawerOpen(true)
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full border-2 cursor-pointer py-3 px-4 rounded-lg transition-all duration-200 border-[#3D441A] text-[#3D441A] hover:bg-[#3D441A] hover:text-[#FFFDD0] font-medium flex items-center justify-center gap-2 shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Take Exam
+            </motion.button>
+          )}
+
+          {!isTutor && isCompleted && !isLoadingResults && (
+            <motion.button
+              onClick={() => {
+                setSelectedExam(exam)
+                setIsExamDrawerOpen(true)
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-md"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              View Results
+            </motion.button>
+          )}
+
+          {!isTutor && exam.isActive && isCompleted && !isLoadingResults && (
+            <div className="text-center text-xs text-gray-500 mt-2">
+              ✓ You have completed this exam
+            </div>
+          )}
+        </div>
+      </motion.div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="rounded-full h-16 w-16 border-b-4 border-[#FFFDD0]"
-        />
+      <div className="min-h-screen bg-gradient-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mx-auto shadow-md mb-4"></div>
+          <p className="text-[#FFFDD0] text-sm">Loading exams...</p>
+        </div>
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center p-4">
         <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-md">
           <h3 className="font-bold mb-2">Error Loading Exams</h3>
           <p className="mb-4">{error?.message || 'Failed to fetch exams'}</p>
@@ -117,13 +357,23 @@ export default function ExamsList() {
     )
   }
 
-  const examsList = filteredExams
+  const examsList = exams || []
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
+          <Link
+            href="/"
+            className="text-[#FFFDD0] hover:underline flex items-center gap-2 transition-all duration-200 hover:gap-3"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Courses
+          </Link>
+
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,16 +381,6 @@ export default function ExamsList() {
           >
             {isTutor ? 'My Exams' : 'Available Exams'}
           </motion.h1>
-          
-          <Link
-            href="/"
-            className="text-[#FFFDD0] hover:underline flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Courses
-          </Link>
         </div>
 
         {/* Role Badge */}
@@ -148,25 +388,6 @@ export default function ExamsList() {
           <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#FFFDD0]/20 text-[#FFFDD0] border border-[#FFFDD0]/30">
             {isTutor ? '👨‍🏫 Tutor View' : '👨‍🎓 Student View'}
           </span>
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex gap-4 mb-8 flex-wrap">
-          {['all', 'active', 'inactive'].map((filterType) => (
-            <motion.button
-              key={filterType}
-              onClick={() => setFilter(filterType as typeof filter)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`py-2 px-6 rounded-lg font-semibold capitalize transition-all ${
-                filter === filterType
-                  ? 'bg-[#FFFDD0] text-[#3D441A]'
-                  : 'bg-[#3D441A]/50 text-[#FFFDD0] border border-[#FFFDD0]/30'
-              }`}
-            >
-              {filterType}
-            </motion.button>
-          ))}
         </div>
 
         {/* Exams Count */}
@@ -179,6 +400,11 @@ export default function ExamsList() {
         {/* Exams Grid */}
         {examsList.length === 0 ? (
           <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-[#FFFDD0]/10 rounded-full mb-4">
+              <svg className="w-10 h-10 text-[#FFFDD0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
             <p className="text-[#FFFDD0] text-lg mb-2">No exams found.</p>
             {!isTutor && (
               <p className="text-[#FFFDD0]/70 text-sm">
@@ -194,75 +420,21 @@ export default function ExamsList() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {examsList.map((exam, index) => (
-              <motion.div
-                key={exam.examId.toString()}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-[#FFFDD0] rounded-xl shadow-lg p-6 border border-[#3D441A]/10"
-              >
-                {/* Status Badge */}
-                <div className="flex justify-between items-start mb-3">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                    exam.isActive
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-400 text-white'
-                  }`}>
-                    {exam.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  
-                  {isTutor && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
-                      Your Exam
-                    </span>
-                  )}
-                </div>
-
-                {/* Exam Details */}
-                <h3 className="text-xl font-semibold text-[#3D441A] mb-3">
-                  {exam.title}
-                </h3>
-
-                <div className="space-y-2 text-sm text-[#3D441A]/80">
-                  <p>
-                    <strong>Exam ID:</strong> {exam.examId.toString()}
-                  </p>
-                  <p>
-                    <strong>Course ID:</strong> {exam.courseId.toString()}
-                  </p>
-                  <p>
-                    <strong>Questions:</strong> {exam.questionCount.toString()}
-                  </p>
-                  {isTutor && (
-                    <p className="text-xs break-all">
-                      <strong>Creator:</strong> {exam.creator.slice(0, 6)}...{exam.creator.slice(-4)}
-                    </p>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-4 flex gap-2">
-                  <Link
-                    href={`/exam/${exam.examId}`}
-                    className="flex-1 bg-[#3D441A] text-[#FFFDD0] py-2 px-4 rounded-lg hover:bg-[#3D441A]/90 transition-colors text-center font-medium"
-                  >
-                    View Details
-                  </Link>
-                  
-                  {!isTutor && exam.isActive && (
-                    <Link
-                      href={`/exam/${exam.examId}/take`}
-                      className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-center font-medium"
-                    >
-                      Take Exam
-                    </Link>
-                  )}
-                </div>
-              </motion.div>
+              <ExamCard key={exam.examId.toString()} exam={exam} index={index} />
             ))}
           </div>
         )}
       </div>
+
+      <ExamDrawer
+        exam={selectedExam}
+        isOpen={isExamDrawerOpen}
+        onClose={() => {
+          setIsExamDrawerOpen(false)
+          setSelectedExam(null)
+        }}
+        onExamCompleted={handleExamCompleted}
+      />
     </div>
   )
 }
