@@ -1,31 +1,54 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRegisterUser, UserRole } from '@/hooks/useContract'
 
 export function UserRegistration() {
   const [name, setName] = useState('')
-  const [role, setRole] = useState<UserRole>(UserRole.STUDENT)
+  const [role, setRole] = useState<UserRole | "">("")
+  const [isRegistered, setIsRegistered] = useState(false)
   const { registerUser, isPending, isConfirming, isConfirmed, error } = useRegisterUser()
+
+
+  useEffect(() => {
+    if (isConfirmed) {
+      setIsRegistered(true)
+      setName('')
+      setRole("")
+    }
+  }, [isConfirmed])
+
+  const handleRefresh = () => {
+    window.location.reload()
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (name.trim()) {
-      registerUser(name.trim(), role)
+    if (name.trim() && role !== "") {
+      registerUser(name.trim(), role as UserRole)
     }
   }
 
-  if (isConfirmed) {
+  if (isRegistered) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#FFFDD0] border border-[#3D441A]/20 rounded-xl p-6 text-center"
+        className="flex flex-col items-center justify-center space-y-4"
       >
-        <h3 className="text-xl font-bold text-[#3D441A] mb-2">Registration Successful!</h3>
-        <p className="text-[#3D441A]">You are now registered as a {role === UserRole.STUDENT ? 'STUDENT' : 'TUTOR'}.</p>
-        <p className="text-sm text-[#3D441A]/80 mt-2">Please refresh the page to continue.</p>
+        <p className="text-[#FFFDD0] text-center">
+          You are now registered as a {role === UserRole.STUDENT ? 'Student' : 'Tutor'}.
+        </p>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleRefresh}
+          className="bg-[#FFFDD0] text-[#3D441A] py-3 px-6 cursor-pointer rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-[#3D441A] shadow-md"
+        >
+          Access Courses
+        </motion.button>
       </motion.div>
     )
   }
@@ -36,14 +59,14 @@ export function UserRegistration() {
         initial={{ opacity: 0, scale: 0.9, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: -10 }}
-        transition={{ 
+        transition={{
           type: "spring",
           stiffness: 400,
           damping: 25
         }}
         className="bg-[#FFFDD0] rounded-xl shadow-lg p-6 max-w-md mx-auto border border-[#3D441A]/10"
       >
-        <motion.h3 
+        <motion.h3
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -51,8 +74,8 @@ export function UserRegistration() {
         >
           Register Your Account
         </motion.h3>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -60,7 +83,7 @@ export function UserRegistration() {
         >
           You need to register before accessing courses and exams.
         </motion.p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <motion.div
             initial={{ opacity: 0, x: -10 }}
@@ -92,36 +115,35 @@ export function UserRegistration() {
             <select
               id="role"
               value={role}
-              onChange={(e) => setRole(Number(e.target.value) as UserRole)}
+              onChange={(e) => setRole(e.target.value === "" ? "" : Number(e.target.value) as UserRole)}
               className="w-full px-3 py-3 border border-[#3D441A]/30 bg-white text-[#3D441A] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D441A]/30 focus:border-[#3D441A]"
+              required
             >
-              <option value={UserRole.STUDENT} className="bg-white text-[#3D441A]">STUDENT</option>
-              <option value={UserRole.TUTOR} className="bg-white text-[#3D441A]">TUTOR</option>
+              <option value="" disabled className="bg-white text-[#3D441A]/50">
+                Pick a Role
+              </option>
+              <option value={UserRole.STUDENT} className="bg-white text-[#3D441A]">Student</option>
+              <option value={UserRole.TUTOR} className="bg-white text-[#3D441A]">Tutor</option>
             </select>
           </motion.div>
 
           <motion.button
             type="submit"
-            disabled={isPending || isConfirming || !name.trim()}
+            disabled={isPending || isConfirming || !name.trim() || role === ""}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            whileHover={{ 
+            whileHover={{
               scale: 1.02,
               backgroundColor: "#3D441A",
               color: "#FFFDD0",
               transition: { duration: 0.2 }
             }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-[#3D441A] text-[#FFFDD0] py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#3D441A]/40 focus:ring-offset-2 focus:ring-offset-[#FFFDD0] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-[#3D441A] shadow-md"
+            className="w-full bg-[#3D441A] text-[#FFFDD0] cursor-pointer py-3 px-4 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#3D441A]/40 focus:ring-offset-2 focus:ring-offset-[#FFFDD0] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 border border-[#3D441A] shadow-md"
           >
             {isPending || isConfirming ? (
               <span className="flex items-center justify-center">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="rounded-full h-4 w-4 border-b-2 border-[#FFFDD0] mr-2"
-                />
                 {isPending ? 'Registering...' : 'Confirming...'}
               </span>
             ) : (

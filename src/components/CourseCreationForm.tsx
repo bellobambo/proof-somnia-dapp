@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCreateCourse, useGetUser, UserRole } from '@/hooks/useContract'
 import { useAccount } from 'wagmi'
+import toast from 'react-hot-toast'
 
 interface CourseCreationFormProps {
   onClose: () => void
@@ -134,23 +135,17 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
     )
   }
 
-  if (isConfirmed) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#FFFDD0] border border-[#3D441A]/20 rounded-xl p-6 text-center"
-      >
-        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-          <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-[#3D441A] mb-2">Course Created Successfully!</h3>
-        <p className="text-[#3D441A]">Your course has been created and is now available to STUDENTs.</p>
-      </motion.div>
-    )
-  }
+  useEffect(() => {
+    if (isConfirmed) {
+      toast.success('Course Created Successfully!')
+
+      onClose()
+
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    }
+  }, [isConfirmed, onClose])
 
   return (
     <AnimatePresence>
@@ -175,7 +170,7 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
             Create New Course
           </motion.h2>
 
-          <div className='h-10'/>
+          <div className='h-10' />
           <button
             onClick={onClose}
             className="text-[#3D441A] cursor-pointer hover:text-[#3D441A]/70 transition-colors"
@@ -235,7 +230,7 @@ export function CourseCreationForm({ onClose }: CourseCreationFormProps) {
             </motion.div>
           )}
 
-          <div className='h-4'/>
+          <div className='h-4' />
 
           <div className="flex gap-3">
             <motion.button

@@ -16,6 +16,7 @@ import {
   getGradeLetter
 } from '@/hooks/useContract'
 import { useAccount } from 'wagmi'
+import toast from 'react-hot-toast'
 
 interface ExamDrawerProps {
     exam: Exam | null
@@ -33,29 +34,23 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
     const [score, setScore] = useState<number | null>(null)
     const [submitError, setSubmitError] = useState<string | null>(null)
 
-    // Get exam questions
     const { data: questions } = useGetExamQuestions(exam?.examId || BigInt(0))
 
-    // Check if student is enrolled
     const { data: isEnrolled } = useIsEnrolledInCourse(
         exam?.courseId || BigInt(0),
         address
     )
 
-    // Get exam results after submission
     const { data: examResultsData, refetch: refetchResults } = useGetExamResults(
         exam?.examId || BigInt(0),
         address
     )
 
-    // Hook for taking exam
     const { takeExam, isPending, isConfirming, isConfirmed, error } = useTakeExam()
 
-    // Reset state when exam changes
     useEffect(() => {
         if (exam && questions) {
             setCurrentQuestion(0)
-            // Initialize with undefined instead of false
             setAnswers(new Array(questions.length).fill(undefined))
             setShowResults(false)
             setScore(null)
@@ -64,12 +59,10 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
         }
     }, [exam, questions])
 
-    // Handle exam submission success
     const examResults = parseExamResults(examResultsData)
 
     useEffect(() => {
         if (isConfirmed && exam) {
-            // Set submitting to false immediately when confirmed
             setIsSubmitting(false)
 
             refetchResults().then(() => {
@@ -81,10 +74,14 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                     onExamCompleted(finalScore, totalQuestions)
                 }
             })
+            toast.success('Exam submitted successfully!')
+            setTimeout(() => {
+                window.location.reload()
+            }, 1500);
         }
     }, [isConfirmed, examResults, exam, refetchResults, onExamCompleted])
 
-    // Handle submission errors
+   
     useEffect(() => {
         if (error) {
             console.error('Submission error:', error)
@@ -97,7 +94,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
         const newAnswers = [...answers]
         newAnswers[currentQuestion] = answer
         setAnswers(newAnswers)
-        setSubmitError(null) // Clear error when user interacts
+        setSubmitError(null) 
     }
 
     const handleNext = () => {
@@ -115,20 +112,20 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
     const handleSubmit = async () => {
         if (!exam || !questions) return
 
-        // Validate all questions are answered
+    
         const unansweredQuestions = answers.filter(answer => answer === undefined || answer === null)
         if (unansweredQuestions.length > 0) {
             setSubmitError('Please answer all questions before submitting')
             return
         }
 
-        // Validate array length matches
+    
         if (answers.length !== questions.length) {
             setSubmitError(`Answer count mismatch. Expected ${questions.length}, got ${answers.length}`)
             return
         }
 
-        // Check enrollment
+    
         if (!isEnrolled) {
             setSubmitError('You are not enrolled in this course')
             return
@@ -156,17 +153,17 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
     const totalQuestions = questions?.length || 0
     const progress = totalQuestions > 0 ? ((currentQuestion + 1) / totalQuestions) * 100 : 0
 
-    // Don't include wagmi states in isSubmittingExam calculation when results are shown
+
     const isSubmittingExam = showResults ? false : (isSubmitting || isPending || isConfirming)
 
-    // Check if all questions are answered
+
     const allQuestionsAnswered = answers.length === totalQuestions &&
         answers.every(answer => answer !== undefined && answer !== null)
 
-    // Check if current question is answered
+
     const isCurrentQuestionAnswered = answers[currentQuestion] !== undefined
 
-    // Calculate score display for results
+
     const scorePercentage = score !== null && totalQuestions > 0 
         ? calculatePercentageScore(BigInt(score), BigInt(totalQuestions))
         : 0
@@ -193,7 +190,6 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                             </div>
                         )}
                     </div>
-                    {/* Custom Close Button */}
                     <button
                         onClick={onClose}
                         disabled={isSubmittingExam}
@@ -237,7 +233,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
             }}
         >
             {showResults && score !== null ? (
-                /* Results View */
+             
                 <div className="text-center py-8">
                     <div className="inline-flex items-center justify-center w-24 h-24 bg-[#3D441A] rounded-full mb-6">
                         <TrophyOutlined className="text-4xl text-[#FFFDD0]" />
@@ -287,9 +283,9 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                 </div>
             ) : (
 
-                /* Exam Questions View */
+               
                 <div className="max-w-2xl mx-auto">
-                    {/* Validation Warnings */}
+                  
                     {!isEnrolled && (
                         <Alert
                             message="Not Enrolled"
@@ -300,21 +296,21 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                         />
                     )}
 
-                    {/* Question Counter */}
+                  
                     <div className="text-sm text-[#3D441A]/80 mb-4">
                         Question {currentQuestion + 1} of {totalQuestions}
                     </div>
 
-                    {/* Current Question */}
+                  
                     {questions && questions[currentQuestion] && (
                         <div className="mb-6 p-6 border-2 border-[#3D441A] rounded-lg bg-[#FFFDD0] shadow-sm">
                             <h3 className="text-xl font-semibold text-[#3D441A] mb-6">
                                 {questions[currentQuestion]}
                             </h3>
 
-                            {/* Answer Options */}
+                           
                             <div className="space-y-4 w-full">
-                                {/* True Button */}
+                                
                                 <button
                                     onClick={() => handleAnswerSelect(true)}
                                     className={`w-full h-16 text-left flex items-center border-2 rounded-lg transition-all duration-200 ${answers[currentQuestion] === true
@@ -336,7 +332,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                                     <span className="font-medium text-base">True</span>
                                 </button>
 
-                                {/* False Button */}
+                           
                                 <button
                                     onClick={() => handleAnswerSelect(false)}
                                     className={`w-full h-16 text-left flex items-center border-2 rounded-lg transition-all duration-200 ${answers[currentQuestion] === false
@@ -361,7 +357,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                         </div>
                     )}
 
-                    {/* Navigation Buttons */}
+                  
                     <div className="flex justify-between pt-6 border-t border-[#3D441A]/30">
                         <button
                             onClick={handlePrevious}
@@ -387,7 +383,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                                     }`}
                             >
                                 {isSubmittingExam ? (
-                                    <span className="flex items-center gap-2">
+                                    <span className="flex items-center cursor-not-allowed gap-2">
                                         <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2a10 10 0 100 20 10 10 0 000-20z" />
                                         </svg>
@@ -414,7 +410,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                         )}
                     </div>
 
-                    {/* Error Display */}
+                    
                     {(submitError || error) && (
                         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                             <div className="flex items-center gap-2 text-red-800">

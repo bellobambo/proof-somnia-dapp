@@ -147,7 +147,7 @@ export default function ExamsList() {
           </span>
 
           {isTutor && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500 text-white">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#3D441A] text-[#FFFDD0]">
               👨‍🏫 Your Exam
             </span>
           )}
@@ -163,13 +163,13 @@ export default function ExamsList() {
           )}
 
           {!isTutor && !isLoadingResults && isCompleted && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#3D441A] text-[#FFFDD0]">
               ✓ Completed
             </span>
           )}
 
           {!isTutor && !isLoadingResults && !isCompleted && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-400 text-white">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border-2 border-[#3D441A] text-[#3D441A]">
               📝 Pending
             </span>
           )}
@@ -201,7 +201,7 @@ export default function ExamsList() {
 
         {/* Enhanced Score Display for Students - Only show when shouldShowScore is true */}
         {!isTutor && shouldShowScore && !isLoadingResults && (
-          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl p-4 mt-4 mb-4 shadow-sm">
+          <div className="bg-linear-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl p-4 mt-4 mb-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-green-800 font-semibold text-sm flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,7 +331,7 @@ export default function ExamsList() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#FFFDD0]/40 border-t-[#FFFDD0] mx-auto shadow-md mb-4"></div>
           <p className="text-[#FFFDD0] text-sm">Loading exams...</p>
@@ -342,7 +342,7 @@ export default function ExamsList() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] flex items-center justify-center p-4">
         <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-md">
           <h3 className="font-bold mb-2">Error Loading Exams</h3>
           <p className="mb-4">{error?.message || 'Failed to fetch exams'}</p>
@@ -360,7 +360,7 @@ export default function ExamsList() {
   const examsList = exams || []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] py-12 px-4">
+    <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] py-12 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">

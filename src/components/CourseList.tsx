@@ -3,25 +3,24 @@
 import { useAccount } from 'wagmi'
 import { useEnrollInCourse, useGetUser, UserRole, useGetAllCourses, useIsEnrolledInCourse } from '@/hooks/useContract'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { CourseCreationForm } from './CourseCreationForm'
 import { motion } from 'framer-motion'
 import { CreateExamDrawer } from './CreateExamForm'
+import toast from 'react-hot-toast'
 
 interface CourseListProps {
   courses: readonly any[]
 }
 
-// Component to display tutor name and wallet address
 function TutorInfo({ tutorAddress }: { tutorAddress: `0x${string}` }) {
   const { data: tutorUser } = useGetUser(tutorAddress)
-  
+
   return (
     <div className="space-y-1">
-      <p className="text-sm text-[#3D441A]/80">
+      <p className="text-[16px] text-[#3D441A]/80">
         Tutor: {tutorUser?.name || 'Unnamed Tutor'}
       </p>
-      <p className="text-xs text-[#3D441A]/60 font-mono">
+      <p className="text-[15px] text-[#3D441A]/60 font-mono">
         Address: {tutorAddress.slice(0, 8)}...{tutorAddress.slice(-6)}
       </p>
     </div>
@@ -31,7 +30,7 @@ function TutorInfo({ tutorAddress }: { tutorAddress: `0x${string}` }) {
 export function CourseList({ courses }: CourseListProps) {
   const { address } = useAccount()
   const { data: user } = useGetUser(address as `0x${string}`)
-  const { enrollInCourse, isPending, isConfirming } = useEnrollInCourse()
+  const { enrollInCourse, isPending, isConfirming, isConfirmed, error } = useEnrollInCourse()
   const [enrollingCourse, setEnrollingCourse] = useState<bigint | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showCreateExam, setShowCreateExam] = useState(false)
@@ -46,9 +45,40 @@ export function CourseList({ courses }: CourseListProps) {
   }, [showCreateExam, selectedCourse, courses])
 
   const handleEnroll = async (courseId: bigint) => {
-    setEnrollingCourse(courseId)
-    enrollInCourse(courseId)
+    try {
+      setEnrollingCourse(courseId)
+      await enrollInCourse(courseId)
+    } catch (err) {
+      console.error('Enrollment error:', err)
+      toast.error('Failed to enroll in course')
+      setEnrollingCourse(null)
+    }
   }
+
+  useEffect(() => {
+    if (isConfirmed && enrollingCourse) {
+      toast.success('🎉 You have successfully enrolled in this course!')
+      setEnrollingCourse(null)
+    }
+  }, [isConfirmed, enrollingCourse])
+
+  useEffect(() => {
+    if (error && enrollingCourse) {
+      console.error('Enrollment error:', error)
+      toast.error(`Enrollment failed: ${error.message || 'Unknown error'}`)
+      setEnrollingCourse(null)
+    }
+  }, [error, enrollingCourse])
+
+  useEffect(() => {
+    if (!isPending && !isConfirming && enrollingCourse) {
+
+      if (!isConfirmed && !error) {
+        toast.error('Enrollment transaction completed but not confirmed')
+      }
+      setTimeout(() => setEnrollingCourse(null), 1000)
+    }
+  }, [isPending, isConfirming, isConfirmed, error, enrollingCourse])
 
   const handleCreateExam = (courseId: bigint) => {
     console.log('🎯 Opening Create Exam for course:', {
@@ -67,6 +97,10 @@ export function CourseList({ courses }: CourseListProps) {
 
   const isTutor = user?.role === UserRole.TUTOR
   const isStudent = user?.role === UserRole.STUDENT
+
+  const isEnrollingCourse = (courseId: bigint) => {
+    return enrollingCourse === courseId && (isPending || isConfirming)
+  }
 
   if (courses.length === 0 && !showCreateForm) {
     return (
@@ -103,7 +137,7 @@ export function CourseList({ courses }: CourseListProps) {
           </motion.button>
         </div>
       )}
-      
+
       <div className="flex justify-end">
         <motion.a
           href='/exams'
@@ -128,9 +162,8 @@ export function CourseList({ courses }: CourseListProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-[#FFFDD0] rounded-xl shadow-lg p-6 border border-[#3D441A]/10 min-h-[250px] flex flex-col" // Increased height to accommodate extra info
+              className="bg-[#FFFDD0] rounded-xl shadow-lg p-6 border border-[#3D441A]/10 min-h-[250px] flex flex-col"
             >
-              {/* Course header with title and enrolled tag */}
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-xl font-semibold text-[#3D441A] flex-1 pr-2">
                   {course.title}
@@ -142,12 +175,9 @@ export function CourseList({ courses }: CourseListProps) {
                 )}
               </div>
 
-              {/* Course details */}
               <div className="space-y-2 mb-4 flex-1">
-                {/* Display tutor name and address using the TutorInfo component */}
                 <TutorInfo tutorAddress={course.tutor} />
-                
-                {/* Display course creation date if available */}
+
                 {course.createdAt && (
                   <p className="text-xs text-[#3D441A]/60">
                     Created: {new Date(course.createdAt).toLocaleDateString()}
@@ -155,80 +185,53 @@ export function CourseList({ courses }: CourseListProps) {
                 )}
               </div>
 
-              {/* Action buttons */}
               <div className="flex flex-col gap-2 mt-auto">
-                {isEnrolled ? (
-                  <div className="space-y-2">
-                    {/* Show Create Exam button for enrolled tutors who own the course */}
-                    {isTutor && address?.toLowerCase() === course.tutor.toLowerCase() && (
-                      <motion.button
-                        onClick={() => handleCreateExam(course.courseId)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="w-full bg-[#3D441A] cursor-pointer text-[#FFFDD0] py-2 px-4 rounded-lg hover:bg-[#3D441A]/90 transition-colors text-center font-medium"
-                      >
-                        Create Exam
-                      </motion.button>
+                <div className="flex flex-col md:flex-row gap-3 mt-3">
+                  <motion.button
+                    onClick={() => handleEnroll(course.courseId)}
+                    disabled={
+                      !isStudent ||
+                      isEnrollingCourse(course.courseId) ||
+                      isEnrolled
+                    }
+                    whileHover={!(isEnrollingCourse(course.courseId) || isEnrolled || !isStudent) ? { scale: 1.02 } : {}}
+                    whileTap={!(isEnrollingCourse(course.courseId) || isEnrolled || !isStudent) ? { scale: 0.98 } : {}}
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 
+                      ${!isStudent || isEnrolled
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-60'
+                        : isEnrollingCourse(course.courseId)
+                          ? 'bg-gray-500 text-gray-200 cursor-not-allowed'
+                          : 'bg-[#3D441A] text-[#FFFDD0] border border-[#3D441A] hover:bg-[#3D441A]/90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3D441A] focus:ring-offset-2 focus:ring-offset-[#FFFDD0]'
+                      }`}
+                  >
+                    {isEnrollingCourse(course.courseId) ? (
+                      <span className="flex cursor-not-allowed items-center justify-center">
+                        Enrolling...
+                      </span>
+                    ) : isEnrolled ? (
+                      'Already Enrolled'
+                    ) : (
+                      'Enroll'
                     )}
+                  </motion.button>
 
-                    {/* Show View Course button for enrolled students */}
-                    {isStudent && (
-                      <Link
-                        href={`/course/${course.courseId}`}
-                        className="w-full bg-[#3D441A] text-[#FFFDD0] py-2 px-4 rounded-lg hover:bg-[#3D441A]/90 transition-colors text-center block font-medium"
-                      >
-                        View Course
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    {/* Show Enroll button for unenrolled students */}
-                    {isStudent && (
-                      <motion.button
-                        onClick={() => handleEnroll(course.courseId)}
-                        disabled={isPending || isConfirming || enrollingCourse === course.courseId}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full bg-[#3D441A] cursor-pointer text-[#FFFDD0] py-2 px-4 rounded-lg hover:bg-[#3D441A]/90 focus:outline-none focus:ring-2 focus:ring-[#3D441A] focus:ring-offset-2 focus:ring-offset-[#FFFDD0] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-                      >
-                        {isPending && enrollingCourse === course.courseId ? (
-                          <span className="flex items-center justify-center">
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              className="rounded-full h-4 w-4 border-b-2 border-[#FFFDD0] mr-2"
-                            />
-                            Enrolling...
-                          </span>
-                        ) : (
-                          'Enroll'
-                        )}
-                      </motion.button>
-                    )}
-
-                    {/* Show Create Exam button for tutors who own the course */}
-                    {isTutor && address?.toLowerCase() === course.tutor.toLowerCase() && (
-                      <div className="flex gap-2 mt-3">
-                        <motion.button
-                          onClick={() => handleCreateExam(course.courseId)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="bg-[#3D441A] cursor-pointer text-[#FFFDD0] py-2 px-4 rounded-lg font-medium w-full transition-all duration-200 hover:bg-[#3D441A]/80"
-                        >
-                          Create Exam
-                        </motion.button>
-                      </div>
-                    )}
-                  </>
-                )}
+                  {isTutor && address?.toLowerCase() === course.tutor.toLowerCase() && (
+                    <motion.button
+                      onClick={() => handleCreateExam(course.courseId)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex-1 bg-[#3D441A] cursor-pointer text-[#FFFDD0] py-2 px-4 rounded-lg font-medium transition-all duration-200 hover:bg-[#3D441A]/80"
+                    >
+                      Create Exam
+                    </motion.button>
+                  )}
+                </div>
               </div>
             </motion.div>
           )
         })}
       </div>
 
-      {/* Course Creation Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/65 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full mx-auto">

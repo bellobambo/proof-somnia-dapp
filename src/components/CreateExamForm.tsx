@@ -5,6 +5,7 @@ import { useCreateExam } from '@/hooks/useContract'
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import toast from 'react-hot-toast'
 
 interface CreateExamDrawerProps {
   open: boolean
@@ -48,8 +49,7 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
 
   useEffect(() => {
     if (isConfirmed) {
-      console.log('✅ Exam creation confirmed on blockchain!')
-      message.success('Exam created successfully!')
+      toast.success('Exam created successfully!')
       form.resetFields()
       setQuestions([{ text: '', correctAnswer: true }])
       setLoading(false)
@@ -169,7 +169,7 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
       <div className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-[#3D441A] mb-2">
-            Exam Title *
+            Exam Title
           </label>
           <Form
             form={form}
@@ -181,7 +181,7 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
               name="title"
               rules={[{ required: true, message: 'Please enter exam title' }]}
             >
-              <Input
+              <input
                 placeholder="e.g. Midterm Assessment"
                 className="w-full bg-white border border-[#3D441A]/20 rounded-lg px-4 py-3 text-[#3D441A] placeholder-[#3D441A]/40 focus:outline-none focus:ring-2 focus:ring-[#3D441A] focus:border-transparent transition-all text-lg"
               />
@@ -189,18 +189,20 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
           </Form>
         </div>
 
-        {/* Questions Section */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-[#3D441A]">Exam Questions</h3>
-            <Button
-              type="dashed"
+            <button
               onClick={addQuestion}
-              icon={<PlusOutlined />}
-              className="border-[#3D441A] text-[#3D441A] hover:border-[#3D441A]/80 hover:text-[#3D441A]/80"
+              className="border-[#3D441A] cursor-pointer items-center border-2 rounded-lg p-2 text-[#3D441A] hover:border-[#3D441A]/80 hover:text-[#3D441A]/80"
             >
-              Add Question
-            </Button>
+              <PlusOutlined />
+
+              <span className='ml-2'>
+
+                Add Question
+              </span>
+            </button>
           </div>
 
           <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
@@ -226,7 +228,7 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
                   {/* Question Text */}
                   <div>
                     <label className="block text-sm font-medium text-[#3D441A] mb-2">
-                      Question Text *
+                      Question Text
                     </label>
                     <Input.TextArea
                       placeholder="Enter question text (e.g., 'Blockchain is decentralized?')"
@@ -293,43 +295,37 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
             isCreating ||
             questions.some(q => !q.text.trim())
           }
-          className={`w-full py-4 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D441A] focus:ring-offset-2 focus:ring-offset-[#FFFDD0] transition-all duration-200 font-semibold text-lg ${
-            courseId === null ||
-            courseId === undefined ||
-            isCreating ||
-            questions.some(q => !q.text.trim())
+          className={`w-full py-4 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D441A] focus:ring-offset-2 focus:ring-offset-[#FFFDD0] transition-all duration-200 font-semibold text-lg ${courseId === null ||
+              courseId === undefined ||
+              isCreating ||
+              questions.some(q => !q.text.trim())
               ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
               : 'bg-[#3D441A] text-[#FFFDD0] hover:bg-[#3D441A]/90 cursor-pointer'
-          }`}
+            }`}
           whileHover={
             !isCreating &&
-            courseId !== null &&
-            courseId !== undefined &&
-            !questions.some(q => !q.text.trim())
+              courseId !== null &&
+              courseId !== undefined &&
+              !questions.some(q => !q.text.trim())
               ? { scale: 1.02 }
               : {}
           }
           whileTap={
             !isCreating &&
-            courseId !== null &&
-            courseId !== undefined &&
-            !questions.some(q => !q.text.trim())
+              courseId !== null &&
+              courseId !== undefined &&
+              !questions.some(q => !q.text.trim())
               ? { scale: 0.98 }
               : {}
           }
         >
           {isCreating ? (
             <span className="flex items-center justify-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                className="rounded-full h-5 w-5 border-b-2 border-[#FFFDD0] mr-2"
-              />
+          
               Creating Exam...
             </span>
           ) : (
-            `Create Exam with ${questions.length} Question${
-              questions.length !== 1 ? 's' : ''
+            `Create Exam with ${questions.length} Question${questions.length !== 1 ? 's' : ''
             }`
           )}
         </motion.button>
