@@ -38,7 +38,7 @@ export function UserRegistration() {
         className="flex flex-col items-center justify-center space-y-4"
       >
         <p className="text-[#FFFDD0] text-center">
-          You are now registered as a {role === UserRole.STUDENT ? 'Student' : 'Tutor'}.
+          Registration Complete
         </p>
 
         <motion.button

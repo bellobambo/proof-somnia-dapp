@@ -1,5 +1,5 @@
 export const CONTRACT_ADDRESS =
-  "0x679fe529386Cf51cdE8bAe21FE9Bb9099E4B4Bd4" as `0x${string}`;
+  "0x2b7f7552E3B5902c2d1dAE65664ABE93F9d45795" as `0x${string}`;
 
 export const CONTRACT_ABI = [
   {
@@ -252,9 +252,14 @@ export const CONTRACT_ABI = [
         type: "string[]",
       },
       {
-        internalType: "bool[]",
+        internalType: "string[4][]",
+        name: "questionOptions",
+        type: "string[4][]",
+      },
+      {
+        internalType: "uint256[]",
         name: "correctAnswers",
-        type: "bool[]",
+        type: "uint256[]",
       },
     ],
     name: "createExam",
@@ -291,9 +296,9 @@ export const CONTRACT_ABI = [
     name: "examCorrectAnswers",
     outputs: [
       {
-        internalType: "bool",
+        internalType: "uint256",
         name: "",
-        type: "bool",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -307,6 +312,35 @@ export const CONTRACT_ABI = [
         internalType: "uint256",
         name: "",
         type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "examOptions",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
       },
     ],
     stateMutability: "view",
@@ -699,12 +733,36 @@ export const CONTRACT_ABI = [
         type: "uint256",
       },
     ],
+    name: "getExamCorrectAnswers",
+    outputs: [
+      {
+        internalType: "uint256[]",
+        name: "",
+        type: "uint256[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "examId",
+        type: "uint256",
+      },
+    ],
     name: "getExamQuestions",
     outputs: [
       {
         internalType: "string[]",
-        name: "",
+        name: "questionTexts",
         type: "string[]",
+      },
+      {
+        internalType: "string[4][]",
+        name: "questionOptions",
+        type: "string[4][]",
       },
     ],
     stateMutability: "view",
@@ -731,9 +789,9 @@ export const CONTRACT_ABI = [
         type: "uint256",
       },
       {
-        internalType: "bool[]",
+        internalType: "uint256[]",
         name: "answers",
-        type: "bool[]",
+        type: "uint256[]",
       },
       {
         internalType: "bool",
@@ -1001,9 +1059,9 @@ export const CONTRACT_ABI = [
         type: "uint256",
       },
       {
-        internalType: "bool[]",
+        internalType: "uint256[]",
         name: "answers",
-        type: "bool[]",
+        type: "uint256[]",
       },
     ],
     name: "takeExam",

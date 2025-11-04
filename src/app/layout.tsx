@@ -64,7 +64,7 @@ export default function RootLayout({
             error: {
               duration: 5000,
               style: {
-                background: '#FFB6C1', 
+                background: '#3D441A', 
                 color: '#FFFDD0',
                 border: '2px solid #FFFDD0',
               },

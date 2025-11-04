@@ -1,19 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Drawer, Progress, Button, Space, Card, Alert } from 'antd'
+import { useState, useEffect, useMemo } from 'react'
+import { Drawer, Progress, Button, Space, Card, Alert, Radio } from 'antd'
 import {
     TrophyOutlined
 } from '@ant-design/icons'
-import { 
-  useTakeExam, 
-  useGetExamQuestions, 
-  useGetExamResults, 
-  Exam, 
-  parseExamResults, 
-  useIsEnrolledInCourse,
-  calculatePercentageScore,
-  getGradeLetter
+import {
+    useTakeExam,
+    useGetExamQuestions,
+    useGetExamResults,
+    Exam,
+    parseExamResults,
+    useIsEnrolledInCourse,
+    calculatePercentageScore,
+    getGradeLetter,
+    parseExamQuestions,
+    useGetExamCorrectAnswers
 } from '@/hooks/useContract'
 import { useAccount } from 'wagmi'
 import toast from 'react-hot-toast'
@@ -28,14 +30,21 @@ interface ExamDrawerProps {
 export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: ExamDrawerProps) {
     const { address } = useAccount()
     const [currentQuestion, setCurrentQuestion] = useState(0)
-    const [answers, setAnswers] = useState<boolean[]>([])
+    const [answers, setAnswers] = useState<number[]>([]) 
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showResults, setShowResults] = useState(false)
     const [score, setScore] = useState<number | null>(null)
     const [submitError, setSubmitError] = useState<string | null>(null)
 
-    const { data: questions } = useGetExamQuestions(exam?.examId || BigInt(0))
+  
+    const { data: questionsData } = useGetExamQuestions(exam?.examId || BigInt(0))
+    const { data: correctAnswersData } = useGetExamCorrectAnswers(exam?.examId || BigInt(0))
 
+ 
+    const parsedQuestions = useMemo(() =>
+        parseExamQuestions(questionsData, correctAnswersData),
+        [questionsData, correctAnswersData]
+    )
     const { data: isEnrolled } = useIsEnrolledInCourse(
         exam?.courseId || BigInt(0),
         address
@@ -48,16 +57,18 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
 
     const { takeExam, isPending, isConfirming, isConfirmed, error } = useTakeExam()
 
+ 
     useEffect(() => {
-        if (exam && questions) {
+        if (exam && parsedQuestions) {
             setCurrentQuestion(0)
-            setAnswers(new Array(questions.length).fill(undefined))
+
+            setAnswers(new Array(parsedQuestions.length).fill(-1))
             setShowResults(false)
             setScore(null)
             setIsSubmitting(false)
             setSubmitError(null)
         }
-    }, [exam, questions])
+    }, [exam, parsedQuestions])
 
     const examResults = parseExamResults(examResultsData)
 
@@ -81,7 +92,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
         }
     }, [isConfirmed, examResults, exam, refetchResults, onExamCompleted])
 
-   
+
     useEffect(() => {
         if (error) {
             console.error('Submission error:', error)
@@ -90,15 +101,21 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
         }
     }, [error])
 
-    const handleAnswerSelect = (answer: boolean) => {
+    const handleAnswerSelect = (answerIndex: number) => {
+        console.log('Selecting answer:', {
+            questionIndex: currentQuestion,
+            answerIndex,
+            currentAnswers: answers
+        })
+
         const newAnswers = [...answers]
-        newAnswers[currentQuestion] = answer
+        newAnswers[currentQuestion] = answerIndex
         setAnswers(newAnswers)
-        setSubmitError(null) 
+        setSubmitError(null)
     }
 
     const handleNext = () => {
-        if (currentQuestion < (questions?.length || 0) - 1) {
+        if (currentQuestion < (parsedQuestions?.length || 0) - 1) {
             setCurrentQuestion(currentQuestion + 1)
         }
     }
@@ -110,22 +127,28 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
     }
 
     const handleSubmit = async () => {
-        if (!exam || !questions) return
+        if (!exam || !parsedQuestions) return
 
-    
-        const unansweredQuestions = answers.filter(answer => answer === undefined || answer === null)
+     
+        const unansweredQuestions = answers.filter(answer => answer === -1)
         if (unansweredQuestions.length > 0) {
             setSubmitError('Please answer all questions before submitting')
             return
         }
 
-    
-        if (answers.length !== questions.length) {
-            setSubmitError(`Answer count mismatch. Expected ${questions.length}, got ${answers.length}`)
+      
+        if (answers.length !== parsedQuestions.length) {
+            setSubmitError(`Answer count mismatch. Expected ${parsedQuestions.length}, got ${answers.length}`)
             return
         }
 
-    
+       
+        const invalidAnswers = answers.filter(answer => answer < 0 || answer > 3)
+        if (invalidAnswers.length > 0) {
+            setSubmitError('Some answers are invalid. Please select valid options (A, B, C, or D)')
+            return
+        }
+
         if (!isEnrolled) {
             setSubmitError('You are not enrolled in this course')
             return
@@ -139,7 +162,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                 examId: exam.examId.toString(),
                 answers,
                 answersLength: answers.length,
-                questionCount: questions.length
+                questionCount: parsedQuestions.length
             })
 
             takeExam(exam.examId, answers)
@@ -150,24 +173,23 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
         }
     }
 
-    const totalQuestions = questions?.length || 0
+    const totalQuestions = parsedQuestions?.length || 0
     const progress = totalQuestions > 0 ? ((currentQuestion + 1) / totalQuestions) * 100 : 0
-
 
     const isSubmittingExam = showResults ? false : (isSubmitting || isPending || isConfirming)
 
-
     const allQuestionsAnswered = answers.length === totalQuestions &&
-        answers.every(answer => answer !== undefined && answer !== null)
+        answers.every(answer => answer !== -1 && answer >= 0 && answer <= 3)
 
+    const isCurrentQuestionAnswered = answers[currentQuestion] !== -1
 
-    const isCurrentQuestionAnswered = answers[currentQuestion] !== undefined
-
-
-    const scorePercentage = score !== null && totalQuestions > 0 
+    const scorePercentage = score !== null && totalQuestions > 0
         ? calculatePercentageScore(BigInt(score), BigInt(totalQuestions))
         : 0
     const gradeLetter = score !== null ? getGradeLetter(scorePercentage) : ''
+
+   
+    const getOptionLetter = (index: number) => String.fromCharCode(65 + index)
 
     return (
         <Drawer
@@ -194,8 +216,8 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                         onClick={onClose}
                         disabled={isSubmittingExam}
                         className={`ml-4 p-2 rounded-lg transition-all duration-200 ${isSubmittingExam
-                                ? 'opacity-50 cursor-not-allowed'
-                                : 'hover:bg-[#FFFDD0]/20'
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:bg-[#FFFDD0]/20'
                             }`}
                         aria-label="Close drawer"
                     >
@@ -218,7 +240,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
             placement="right"
             onClose={onClose}
             open={isOpen}
-            width={700}
+            width={1500}
             closable={false}
             maskClosable={!isSubmittingExam}
             styles={{
@@ -233,7 +255,6 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
             }}
         >
             {showResults && score !== null ? (
-             
                 <div className="text-center py-8">
                     <div className="inline-flex items-center justify-center w-24 h-24 bg-[#3D441A] rounded-full mb-6">
                         <TrophyOutlined className="text-4xl text-[#FFFDD0]" />
@@ -282,10 +303,7 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                     </Button>
                 </div>
             ) : (
-
-               
                 <div className="max-w-2xl mx-auto">
-                  
                     {!isEnrolled && (
                         <Alert
                             message="Not Enrolled"
@@ -296,68 +314,57 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                         />
                     )}
 
-                  
                     <div className="text-sm text-[#3D441A]/80 mb-4">
                         Question {currentQuestion + 1} of {totalQuestions}
                     </div>
-
-                  
-                    {questions && questions[currentQuestion] && (
+                    {parsedQuestions && parsedQuestions[currentQuestion] && (
                         <div className="mb-6 p-6 border-2 border-[#3D441A] rounded-lg bg-[#FFFDD0] shadow-sm">
                             <h3 className="text-xl font-semibold text-[#3D441A] mb-6">
-                                {questions[currentQuestion]}
+                                {parsedQuestions[currentQuestion].questionText}
                             </h3>
 
-                           
-                            <div className="space-y-4 w-full">
-                                
-                                <button
-                                    onClick={() => handleAnswerSelect(true)}
-                                    className={`w-full h-16 text-left flex items-center border-2 rounded-lg transition-all duration-200 ${answers[currentQuestion] === true
-                                            ? 'bg-[#3D441A] border-[#3D441A] text-[#FFFDD0]'
-                                            : 'bg-[#FFFDD0] border-[#3D441A] text-[#3D441A] hover:bg-[#3D441A] hover:text-[#FFFDD0]'
-                                        }`}
-                                    style={{ padding: '16px' }}
-                                >
-                                    <div className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${answers[currentQuestion] === true
-                                            ? 'bg-[#FFFDD0] border-[#FFFDD0]'
-                                            : 'border-[#3D441A]'
-                                        }`}>
-                                        {answers[currentQuestion] === true && (
-                                            <svg className="w-3 h-3 text-[#3D441A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        )}
+                            <div className="space-y-3 w-full">
+                                {parsedQuestions[currentQuestion].options.map((option, optionIndex) => (
+                                    <div
+                                        key={optionIndex}
+                                        className={`w-full text-left flex items-center border-2 rounded-lg transition-all duration-200 p-4 cursor-pointer ${answers[currentQuestion] === optionIndex
+                                                ? 'bg-[#3D441A] border-[#3D441A] text-[#FFFDD0]'
+                                                : 'bg-[#FFFDD0] border-[#3D441A] text-[#3D441A] hover:bg-[#3D441A] hover:text-[#FFFDD0]'
+                                            }`}
+                                        onClick={() => handleAnswerSelect(optionIndex)}
+                                    >
+                                        <div className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${answers[currentQuestion] === optionIndex
+                                                ? 'bg-[#FFFDD0] border-[#FFFDD0]'
+                                                : 'border-[#3D441A]'
+                                            }`}>
+                                            {answers[currentQuestion] === optionIndex && (
+                                                <svg className="w-3 h-3 text-[#3D441A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <span className="font-semibold min-w-6">
+                                                {getOptionLetter(optionIndex)}.
+                                            </span>
+                                            <span className="font-medium text-base text-left flex-1">
+                                                {option}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <span className="font-medium text-base">True</span>
-                                </button>
-
-                           
-                                <button
-                                    onClick={() => handleAnswerSelect(false)}
-                                    className={`w-full h-16 text-left flex items-center border-2 rounded-lg transition-all duration-200 ${answers[currentQuestion] === false
-                                            ? 'bg-[#3D441A] border-[#3D441A] text-[#FFFDD0]'
-                                            : 'bg-[#FFFDD0] border-[#3D441A] text-[#3D441A] hover:bg-[#3D441A] hover:text-[#FFFDD0]'
-                                        }`}
-                                    style={{ padding: '16px' }}
-                                >
-                                    <div className={`w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center ${answers[currentQuestion] === false
-                                            ? 'bg-[#FFFDD0] border-[#FFFDD0]'
-                                            : 'border-[#3D441A]'
-                                        }`}>
-                                        {answers[currentQuestion] === false && (
-                                            <svg className="w-3 h-3 text-[#3D441A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        )}
-                                    </div>
-                                    <span className="font-medium text-base">False</span>
-                                </button>
+                                ))}
                             </div>
+
+                            {isCurrentQuestionAnswered && (
+                                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <p className="text-green-700 text-sm">
+                                        <strong>Selected:</strong> Option {getOptionLetter(answers[currentQuestion])}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                  
                     <div className="flex justify-between pt-6 border-t border-[#3D441A]/30">
                         <button
                             onClick={handlePrevious}
@@ -410,7 +417,12 @@ export default function ExamDrawer({ exam, isOpen, onClose, onExamCompleted }: E
                         )}
                     </div>
 
-                    
+                    <div className="mt-4 text-center">
+                        <div className="text-sm text-[#3D441A]/80">
+                            Answered: {answers.filter(a => a !== -1).length} / {totalQuestions}
+                        </div>
+                    </div>
+
                     {(submitError || error) && (
                         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                             <div className="flex items-center gap-2 text-red-800">
