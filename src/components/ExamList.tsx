@@ -29,7 +29,6 @@ export default function ExamsList() {
   const { data: user } = useGetUser(address as `0x${string}`)
   const isTutor = user?.role === UserRole.TUTOR
 
-  // For students: use the optimized function with status
   const { data: examsWithStatusData, isLoading: studentLoading, isError: studentError, error: studentErrorMsg } =
     useGetExamsWithStatusForStudent(address as `0x${string}`, {
       query: {
@@ -37,17 +36,14 @@ export default function ExamsList() {
       }
     })
 
-  // Parse the exams with status data
   const examsWithStatus = useMemo(() => {
     return parseExamsWithStatus(examsWithStatusData) || []
   }, [examsWithStatusData])
 
-  // Extract just the exams array for student view
   const studentExams = useMemo(() => {
     return examsWithStatus.map(item => item.exam)
   }, [examsWithStatus])
 
-  // For tutors: fetch all exams and filter by creator
   const { data: allExams, isLoading: allExamsLoading } = useGetAllExams()
 
   const tutorExams = useMemo(() => {
@@ -64,13 +60,10 @@ export default function ExamsList() {
 
   const handleExamCompleted = (score: number, totalQuestions: number) => {
     console.log(`Exam completed! Score: ${score}/${totalQuestions}`)
-    // Refresh the page to update scores
     window.location.reload()
   }
 
-  // Exam Card Component with Enhanced Score Display
   const ExamCard = ({ exam, index }: { exam: Exam; index: number }) => {
-    // For students, get completion status and score from the pre-fetched data
     const examStatus = useMemo(() => {
       if (isTutor) return null
       return examsWithStatus.find(item => 
@@ -78,7 +71,6 @@ export default function ExamsList() {
       )
     }, [examsWithStatus, exam.examId, isTutor])
 
-    // For individual score fetching (fallback)
     const { data: examScoreData, isLoading: scoreLoading, error: scoreError } = useGetStudentExamScore(
       exam.examId,
       !isTutor ? (address as `0x${string}`) : undefined,
@@ -91,13 +83,11 @@ export default function ExamsList() {
 
     const examScore = parseExamScore(examScoreData)
 
-    // Use pre-fetched status first, then fallback to individual query
     const isCompleted = examStatus?.completionStatus || examScore?.isCompleted || false
     const rawScore = examStatus?.score || examScore?.rawScore || BigInt(0)
 
     const totalQuestions = Number(exam.questionCount)
 
-    // Calculate percentage from raw score
     const scorePercentage = totalQuestions > 0 
       ? calculatePercentageScore(rawScore, BigInt(totalQuestions))
       : 0
@@ -116,10 +106,8 @@ export default function ExamsList() {
       isLoadingResults
     })
 
-    // Only show score if exam is actually completed
     const shouldShowScore = isCompleted && totalQuestions > 0
 
-    // Determine pass status
     const getPassStatus = (percentage: number) => {
       if (percentage >= 70) return { label: 'Pass', color: 'bg-green-600' }
       if (percentage >= 50) return { label: 'Average', color: 'bg-yellow-500' }
@@ -175,12 +163,10 @@ export default function ExamsList() {
           )}
         </div>
 
-        {/* Exam Title */}
         <h3 className="text-xl font-semibold text-[#3D441A] mb-3">
           {exam.title}
         </h3>
 
-        {/* Exam Details */}
         <div className="space-y-2 text-sm text-[#3D441A]/80 mb-4">
           <p>
             <strong>Exam ID:</strong> {exam.examId.toString()}
@@ -199,7 +185,6 @@ export default function ExamsList() {
           )}
         </div>
 
-        {/* Enhanced Score Display for Students - Only show when shouldShowScore is true */}
         {!isTutor && shouldShowScore && !isLoadingResults && (
           <div className="bg-linear-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-xl p-4 mt-4 mb-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
@@ -245,7 +230,6 @@ export default function ExamsList() {
           </div>
         )}
 
-        {/* Not Taken Yet Message - Show when not completed */}
         {!isTutor && !isCompleted && !isLoadingResults && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
             <p className="text-orange-700 text-sm font-medium flex items-center gap-2">
@@ -257,7 +241,6 @@ export default function ExamsList() {
           </div>
         )}
 
-        {/* Error Display */}
         {!isTutor && scoreError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
             <p className="text-red-700 text-xs flex items-center gap-2">
@@ -268,8 +251,6 @@ export default function ExamsList() {
             </p>
           </div>
         )}
-
-        {/* Loading State for Results */}
         {!isTutor && isLoadingResults && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
             <div className="flex items-center gap-2 text-gray-600 text-sm">
@@ -282,7 +263,6 @@ export default function ExamsList() {
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="space-y-2">
           {!isTutor && exam.isActive && !isCompleted && !isLoadingResults && (
             <motion.button
@@ -362,7 +342,6 @@ export default function ExamsList() {
   return (
     <div className="min-h-screen bg-linear-to-br from-[#3D441A] via-[#4A5320] to-[#3D441A] py-12 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <Link
             href="/"
@@ -383,21 +362,18 @@ export default function ExamsList() {
           </motion.h1>
         </div>
 
-        {/* Role Badge */}
         <div className="mb-6">
           <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#FFFDD0]/20 text-[#FFFDD0] border border-[#FFFDD0]/30">
             {isTutor ? '👨‍🏫 Tutor View' : '👨‍🎓 Student View'}
           </span>
         </div>
 
-        {/* Exams Count */}
         <p className="text-[#FFFDD0]/80 mb-6">
           Showing {examsList.length} exam{examsList.length !== 1 ? 's' : ''}
           {isTutor && ' you created'}
           {!isTutor && ' from your enrolled courses'}
         </p>
 
-        {/* Exams Grid */}
         {examsList.length === 0 ? (
           <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-[#FFFDD0]/10 rounded-full mb-4">

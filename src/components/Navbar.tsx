@@ -85,7 +85,7 @@ export function UserStatus() {
   }
 
   const isTutor = user.role === UserRole.TUTOR // TUTOR = 0
-  console.log("User role:", user.role)
+  // console.log("User role:", user.role)
   const roleColor = isTutor ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
   const roleIcon = isTutor ? '👨‍🏫' : '👨‍🎓'
 
@@ -155,7 +155,7 @@ export function UserStatusCompact() {
   }
 
   const isTutor = user.role === UserRole.TUTOR // TUTOR = 0
-  console.log("User role:", user.role)
+  // console.log("User role:", user.role)
   const roleIcon = isTutor ? '👨‍🏫' : '👨‍🎓'
 
   return (

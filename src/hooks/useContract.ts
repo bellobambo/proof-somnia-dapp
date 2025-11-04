@@ -62,16 +62,31 @@ export interface ExamWithStatus {
   score: bigint;
 }
 
+export interface ExamReview {
+  questionTexts: readonly string[];
+  questionOptions: readonly [string, string, string, string][];
+  correctAnswers: readonly bigint[];
+  studentAnswers: readonly bigint[];
+  isCorrect: readonly boolean[];
+  totalScore: bigint;
+  maxScore: bigint;
+}
+
 export interface ExamQuestion {
   questionText: string;
-  options: [string, string, string, string]; // Fixed tuple of 4 strings
+  options: [string, string, string, string]; 
   correctAnswer: number;
 }
 
-// Type for question options as expected by the contract
+export interface ExamAnswersComparison {
+  correctAnswers: readonly bigint[];
+  studentAnswers: readonly bigint[];
+  isCorrect: readonly boolean[];
+  isCompleted: boolean;
+}
+
 export type QuestionOptions = [string, string, string, string];
 
-// Read hooks with proper typing
 export function useGetAllCourses() {
   return useReadContract({
     address: CONTRACT_ADDRESS,
@@ -271,20 +286,27 @@ export function useGetExamsWithStatusForStudent(
  */
 export function useGetCompleteExamData(examId: bigint) {
   const { data: examData, ...examQuery } = useGetExam(examId);
-  const { data: questionsData, ...questionsQuery } = useGetExamQuestions(examId);
-  const { data: correctAnswersData, ...answersQuery } = useGetExamCorrectAnswers(examId);
+  const { data: questionsData, ...questionsQuery } =
+    useGetExamQuestions(examId);
+  const { data: correctAnswersData, ...answersQuery } =
+    useGetExamCorrectAnswers(examId);
 
-  const isLoading = examQuery.isLoading || questionsQuery.isLoading || answersQuery.isLoading;
-  const isError = examQuery.isError || questionsQuery.isError || answersQuery.isError;
+  const isLoading =
+    examQuery.isLoading || questionsQuery.isLoading || answersQuery.isLoading;
+  const isError =
+    examQuery.isError || questionsQuery.isError || answersQuery.isError;
   const error = examQuery.error || questionsQuery.error || answersQuery.error;
 
   // Combine all data
-  const completeData = examData && questionsData && correctAnswersData ? {
-    exam: examData,
-    questions: parseExamQuestions(questionsData, correctAnswersData),
-    rawQuestions: questionsData,
-    correctAnswers: correctAnswersData,
-  } : null;
+  const completeData =
+    examData && questionsData && correctAnswersData
+      ? {
+          exam: examData,
+          questions: parseExamQuestions(questionsData, correctAnswersData),
+          rawQuestions: questionsData,
+          correctAnswers: correctAnswersData,
+        }
+      : null;
 
   return {
     data: completeData,
@@ -307,7 +329,10 @@ export function useGetCompleteExamData(examId: bigint) {
  * @param totalQuestions - Total number of questions
  * @returns Percentage score (0-100)
  */
-export function calculatePercentageScore(rawScore: bigint, totalQuestions: bigint): number {
+export function calculatePercentageScore(
+  rawScore: bigint,
+  totalQuestions: bigint
+): number {
   if (totalQuestions === BigInt(0)) return 0;
   return Number((rawScore * BigInt(100)) / totalQuestions);
 }
@@ -325,9 +350,6 @@ export function getGradeLetter(percentage: number): string {
   return "F";
 }
 
-/**
- * Parse exam results data from contract
- */
 export function parseExamResults(
   data: any
 ): { rawScore: bigint; answers: bigint[]; isCompleted: boolean } | null {
@@ -338,7 +360,9 @@ export function parseExamResults(
   try {
     return {
       rawScore: BigInt(data[0]?.toString() || "0"),
-      answers: (data[1] || []).map((answer: any) => BigInt(answer?.toString() || "0")),
+      answers: (data[1] || []).map((answer: any) =>
+        BigInt(answer?.toString() || "0")
+      ),
       isCompleted: Boolean(data[2]),
     };
   } catch (error) {
@@ -347,9 +371,6 @@ export function parseExamResults(
   }
 }
 
-/**
- * Parse exam score data from contract
- */
 export function parseExamScore(
   data: any
 ): { rawScore: bigint; isCompleted: boolean } | null {
@@ -368,20 +389,19 @@ export function parseExamScore(
   }
 }
 
-/**
- * Parse exams with status data from contract
- */
-export function parseExamsWithStatus(
-  data: any
-): ExamWithStatus[] | null {
+export function parseExamsWithStatus(data: any): ExamWithStatus[] | null {
   if (!data || !Array.isArray(data) || data.length < 3) {
     return null;
   }
 
   try {
     const [availableExams, completionStatus, scores] = data;
-    
-    if (!Array.isArray(availableExams) || !Array.isArray(completionStatus) || !Array.isArray(scores)) {
+
+    if (
+      !Array.isArray(availableExams) ||
+      !Array.isArray(completionStatus) ||
+      !Array.isArray(scores)
+    ) {
       return null;
     }
 
@@ -403,20 +423,23 @@ export function parseExamsWithStatus(
   }
 }
 
-/**
- * Parse exam questions and options from contract data
- */
 export function parseExamQuestions(
   questionsData: any,
   correctAnswersData: any
 ): ExamQuestion[] | null {
-  if (!questionsData || !Array.isArray(questionsData) || questionsData.length < 2) {
+  if (
+    !questionsData ||
+    !Array.isArray(questionsData) ||
+    questionsData.length < 2
+  ) {
     return null;
   }
 
   try {
     const [questionTexts, questionOptions] = questionsData;
-    const correctAnswers = Array.isArray(correctAnswersData) ? correctAnswersData : [];
+    const correctAnswers = Array.isArray(correctAnswersData)
+      ? correctAnswersData
+      : [];
 
     if (!Array.isArray(questionTexts) || !Array.isArray(questionOptions)) {
       return null;
@@ -433,9 +456,6 @@ export function parseExamQuestions(
   }
 }
 
-/**
- * Validate exam answers before submission
- */
 export function validateExamAnswers(
   answers: number[],
   totalQuestions: number
@@ -445,18 +465,18 @@ export function validateExamAnswers(
   }
 
   if (answers.length !== totalQuestions) {
-    return { 
-      isValid: false, 
-      error: `Number of answers (${answers.length}) must match number of questions (${totalQuestions})` 
+    return {
+      isValid: false,
+      error: `Number of answers (${answers.length}) must match number of questions (${totalQuestions})`,
     };
   }
 
   for (let i = 0; i < answers.length; i++) {
     const answer = answers[i];
-    if (typeof answer !== 'number' || answer < 0 || answer > 3) {
-      return { 
-        isValid: false, 
-        error: `Answer at position ${i} must be a number between 0 and 3` 
+    if (typeof answer !== "number" || answer < 0 || answer > 3) {
+      return {
+        isValid: false,
+        error: `Answer at position ${i} must be a number between 0 and 3`,
       };
     }
   }
@@ -464,9 +484,6 @@ export function validateExamAnswers(
   return { isValid: true };
 }
 
-/**
- * Convert regular string array to fixed tuple of 4 strings
- */
 export function toQuestionOptions(options: string[]): QuestionOptions {
   if (options.length !== 4) {
     throw new Error("Question options must have exactly 4 elements");
@@ -474,11 +491,10 @@ export function toQuestionOptions(options: string[]): QuestionOptions {
   return [options[0], options[1], options[2], options[3]];
 }
 
-/**
- * Validate and convert question options array to the correct format
- */
-export function validateAndConvertQuestionOptions(questionOptions: string[][]): QuestionOptions[] {
-  return questionOptions.map(options => {
+export function validateAndConvertQuestionOptions(
+  questionOptions: string[][]
+): QuestionOptions[] {
+  return questionOptions.map((options) => {
     if (options.length !== 4) {
       throw new Error("Each question must have exactly 4 options");
     }
@@ -486,7 +502,6 @@ export function validateAndConvertQuestionOptions(questionOptions: string[][]): 
   });
 }
 
-// Write hooks
 export function useRegisterUser() {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
 
@@ -575,8 +590,7 @@ export function useTakeExam() {
       answersLength: answers.length,
     });
 
-    // Convert answers to bigint array for contract
-    const bigintAnswers = answers.map(answer => BigInt(answer));
+    const bigintAnswers = answers.map((answer) => BigInt(answer));
 
     writeContract({
       address: CONTRACT_ADDRESS,
@@ -628,18 +642,29 @@ export function useCreateExam() {
     });
 
     // Validate inputs
-    if (questionTexts.length !== questionOptions.length || questionTexts.length !== correctAnswers.length) {
-      throw new Error("Number of questions, options, and correct answers must match");
+    if (
+      questionTexts.length !== questionOptions.length ||
+      questionTexts.length !== correctAnswers.length
+    ) {
+      throw new Error(
+        "Number of questions, options, and correct answers must match"
+      );
     }
 
     // Convert correctAnswers to bigint array for contract
-    const bigintCorrectAnswers = correctAnswers.map(answer => BigInt(answer));
+    const bigintCorrectAnswers = correctAnswers.map((answer) => BigInt(answer));
 
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: "createExam",
-      args: [courseId, title, questionTexts, questionOptions, bigintCorrectAnswers],
+      args: [
+        courseId,
+        title,
+        questionTexts,
+        questionOptions,
+        bigintCorrectAnswers,
+      ],
     });
   };
 
@@ -664,11 +689,6 @@ export function useCreateExam() {
   };
 }
 
-// NEW HOOK FOR EXAM CREATION WITH VALIDATION
-
-/**
- * Enhanced exam creation hook with validation
- */
 export function useCreateExamWithValidation() {
   const { createExam, ...createExamState } = useCreateExam();
 
@@ -677,23 +697,33 @@ export function useCreateExamWithValidation() {
     title: string,
     questions: ExamQuestion[]
   ) => {
-    const questionTexts = questions.map(q => q.questionText);
-    const questionOptions = questions.map(q => {
+    const questionTexts = questions.map((q) => q.questionText);
+    const questionOptions = questions.map((q) => {
       if (q.options.length !== 4) {
-        throw new Error(`Question "${q.questionText}" must have exactly 4 options`);
+        throw new Error(
+          `Question "${q.questionText}" must have exactly 4 options`
+        );
       }
       return q.options;
     });
-    const correctAnswers = questions.map(q => q.correctAnswer);
+    const correctAnswers = questions.map((q) => q.correctAnswer);
 
     // Validate correct answers are within range
     correctAnswers.forEach((answer, index) => {
       if (answer < 0 || answer > 3) {
-        throw new Error(`Correct answer for question ${index + 1} must be between 0 and 3`);
+        throw new Error(
+          `Correct answer for question ${index + 1} must be between 0 and 3`
+        );
       }
     });
 
-    return createExam(courseId, title, questionTexts, questionOptions, correctAnswers);
+    return createExam(
+      courseId,
+      title,
+      questionTexts,
+      questionOptions,
+      correctAnswers
+    );
   };
 
   return {
@@ -702,9 +732,6 @@ export function useCreateExamWithValidation() {
   };
 }
 
-/**
- * Hook for creating exams with automatic option format conversion
- */
 export function useCreateExamWithConversion() {
   const { createExam, ...createExamState } = useCreateExam();
 
@@ -712,17 +739,85 @@ export function useCreateExamWithConversion() {
     courseId: bigint,
     title: string,
     questionTexts: string[],
-    questionOptions: string[][], // Accept regular 2D array
+    questionOptions: string[][],
     correctAnswers: number[]
   ) => {
-    // Convert to the proper tuple format
     const formattedOptions = validateAndConvertQuestionOptions(questionOptions);
-    
-    return createExam(courseId, title, questionTexts, formattedOptions, correctAnswers);
+
+    return createExam(
+      courseId,
+      title,
+      questionTexts,
+      formattedOptions,
+      correctAnswers
+    );
   };
 
   return {
     createExam: createExamWithConversion,
     ...createExamState,
   };
+}
+
+export function useGetExamAnswersComparison(
+  examId: bigint,
+  student: `0x${string}` | undefined,
+  options?: { query?: { enabled?: boolean } }
+) {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getExamAnswersComparison",
+    args: student ? [examId, student] : undefined,
+    query: {
+      enabled: options?.query?.enabled ?? !!student,
+    },
+  });
+}
+
+export function parseExamAnswersComparison(
+  data: any
+): ExamAnswersComparison | null {
+  // if (!data || !Array.isArray(data) || data.length < 4) {
+  //   return null;
+  // }
+
+  try {
+    const [correctAnswers, studentAnswers, isCorrect, isCompleted] = data;
+    console.log(
+      "from parseExamAnswersComparison",
+      correctAnswers,
+      studentAnswers
+    );
+
+    return {
+      correctAnswers: Array.isArray(correctAnswers)
+        ? correctAnswers.map((answer: any) => BigInt(answer?.toString() || "0"))
+        : [],
+      studentAnswers: Array.isArray(studentAnswers)
+        ? studentAnswers.map((answer: any) => BigInt(answer?.toString() || "0"))
+        : [],
+      isCorrect: Array.isArray(isCorrect)
+        ? isCorrect.map((correct: any) => Boolean(correct))
+        : [],
+      isCompleted: Boolean(isCompleted),
+    };
+  } catch (error) {
+    console.error("Error parsing exam answers comparison:", error);
+    return null;
+  }
+}
+
+/**
+ * Get correct answers for an exam (for students who have completed the exam)
+ * @param examId - The exam ID
+ * @param options - Query options including enabled flag
+ */
+export function useGetCorrectAnswersForStudent(examId: bigint) {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: "getCorrectAnswersForStudent",
+    args: [examId],
+  });
 }
