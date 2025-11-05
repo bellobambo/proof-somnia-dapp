@@ -2,7 +2,7 @@
 
 import { Drawer, message, Input, Button, Space, Form, Card, Select, Upload } from 'antd'
 import { useCreateExamWithConversion, QuestionOptions, toQuestionOptions } from '@/hooks/useContract'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { PlusOutlined, DeleteOutlined, CloseOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons'
 import toast from 'react-hot-toast'
@@ -20,8 +20,8 @@ interface CreateExamDrawerProps {
 
 interface QuestionForm {
   text: string
-  options: string[] 
-  correctAnswer: number 
+  options: string[]
+  correctAnswer: number
 }
 
 export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExamDrawerProps) {
@@ -38,6 +38,7 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
   ])
   const [storedTitle, setStoredTitle] = useState('')
   const [fileUploadLoading, setFileUploadLoading] = useState(false)
+  const hasShownSuccess = useRef(false)
 
 
   const currentCourse = useCallback(() => {
@@ -66,37 +67,48 @@ export function CreateExamDrawer({ open, onClose, courseId, courses }: CreateExa
     }
   }, [open, form])
 
- 
-  useEffect(() => {
-    console.log('🔄 CreateExamDrawer state:', {
-      isPending,
-      isConfirming,
-      isConfirmed,
-      error,
-      hash,
-      loading
-    })
-  }, [isPending, isConfirming, isConfirmed, error, hash, loading])
 
-useEffect(() => {
-  if (isConfirmed) {
-    console.log('✅ Exam creation confirmed!')
-    toast.success('Exam created successfully!')
-    
-    onClose()
-    
-    form.resetFields()
-    setQuestions([{
-      text: '',
-      options: ['', '', '', ''],
-      correctAnswer: 0
-    }])
-    setLoading(false)
-    setTimeout(() => {
-      window.location.reload()
-    }, 1500)
-  }
-}, [isConfirmed, onClose, form])
+  // useEffect(() => {
+  //   console.log('🔄 CreateExamDrawer state:', {
+  //     isPending,
+  //     isConfirming,
+  //     isConfirmed,
+  //     error,
+  //     hash,
+  //     loading
+  //   })
+  // }, [isPending, isConfirming, isConfirmed, error, hash, loading])
+
+  useEffect(() => {
+    if (isConfirmed && !hasShownSuccess.current) {
+      console.log('✅ Exam creation confirmed!')
+      hasShownSuccess.current = true
+
+      toast.success('Exam created successfully!')
+
+      // Reset everything
+      onClose()
+      form.resetFields()
+      setQuestions([{
+        text: '',
+        options: ['', '', '', ''],
+        correctAnswer: 0
+      }])
+      setLoading(false)
+
+      // Optional page reload (if you want to refresh exam list)
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+    }
+  }, [isConfirmed])
+
+
+  useEffect(() => {
+    if (!open) {
+      hasShownSuccess.current = false
+    }
+  }, [open])
 
   useEffect(() => {
     if (error) {
@@ -110,7 +122,7 @@ useEffect(() => {
     }
   }, [error])
 
-  
+
   const parseQuestionsFromFile = (content: string): QuestionForm[] => {
     const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0)
     const parsedQuestions: QuestionForm[] = []
@@ -118,11 +130,11 @@ useEffect(() => {
     let options: string[] = []
 
     for (const line of lines) {
-    
+
       if (line.startsWith('#')) continue
 
       if (line.startsWith('Q:') || line.match(/^\d+\./)) {
-      
+
         if (currentQuestion.text && options.length === 4) {
           parsedQuestions.push({
             text: currentQuestion.text,
@@ -150,7 +162,7 @@ useEffect(() => {
         continue
       }
 
-     
+
       if (line.startsWith('Correct:')) {
         const correctAnswerLetter = line.substring(8).trim().toUpperCase()
         const correctAnswerIndex = ['A', 'B', 'C', 'D'].indexOf(correctAnswerLetter)
@@ -232,7 +244,7 @@ useEffect(() => {
     })
   }
 
- 
+
   const downloadTemplate = () => {
     const templateContent = `# Exam Questions Template
 # Copy and modify this template to create your questions
@@ -340,7 +352,7 @@ Correct: B
       console.log('🎯 Starting exam submission process...')
       setLoading(true)
 
-    
+
       const values = await form.validateFields()
       console.log('📝 Form values validated:', values)
 
@@ -351,7 +363,7 @@ Correct: B
         userAddress: address
       })
 
-  
+
       if (courseId === null || courseId === undefined) {
         console.error('❌ No course selected')
         message.error('No course selected')
@@ -359,7 +371,7 @@ Correct: B
         return
       }
 
-    
+
       const validQuestions = questions.filter(q => q.text.trim() && q.options.every(opt => opt.trim()))
       if (validQuestions.length === 0) {
         console.error('❌ No valid questions')
@@ -368,7 +380,7 @@ Correct: B
         return
       }
 
-  
+
       const hasEmptyQuestions = questions.some(q => !q.text.trim())
       const hasEmptyOptions = questions.some(q => q.options.some(opt => !opt.trim()))
 
@@ -406,7 +418,7 @@ Correct: B
         userAddress: address
       })
 
-  
+
       console.log('🚀 Calling createExam function...')
       createExam(courseId, values.title, questionTexts, questionOptions, correctAnswers)
 
@@ -466,7 +478,7 @@ Correct: B
         </div>
       }
       placement="right"
-      width={800}
+      width={900}
       onClose={onClose}
       open={open}
       styles={{
@@ -562,7 +574,7 @@ Correct: B`}
               </pre>
               <p className="text-xs text-[#3D441A] mt-2">
                 • Use numbered questions: "1. Your question"<br />
-               
+
                 • Options with A), B), C), D)<br />
                 • Mark correct answer with "Correct: A"<br />
                 • Separate questions with blank lines
@@ -593,7 +605,7 @@ Correct: B`}
             </div>
           )}
 
-          <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
+          <div className="space-y-6 max-h-[700px] overflow-y-auto pr-2">
             {questions.map((question, questionIndex) => (
               <Card
                 key={questionIndex}
@@ -644,8 +656,8 @@ Correct: B`}
                       {question.options.map((option, optionIndex) => (
                         <div key={optionIndex} className="flex items-center gap-2">
                           <div className={`w-6 h-6 flex items-center justify-center rounded-full border-2 ${question.correctAnswer === optionIndex
-                              ? 'bg-[#3D441A] border-[#3D441A] text-white'
-                              : 'border-gray-300'
+                            ? 'bg-[#3D441A] border-[#3D441A] text-white'
+                            : 'border-gray-300'
                             }`}>
                             {String.fromCharCode(65 + optionIndex)}
                           </div>
@@ -659,8 +671,8 @@ Correct: B`}
                             type={question.correctAnswer === optionIndex ? 'primary' : 'default'}
                             onClick={() => updateQuestion(questionIndex, 'correctAnswer', optionIndex)}
                             className={`min-w-20 ${question.correctAnswer === optionIndex
-                                ? 'bg-[#3D441A] border-[#3D441A] hover:bg-[#3D441A]/90'
-                                : 'border-gray-300 hover:border-[#3D441A] hover:text-[#3D441A]'
+                              ? 'bg-[#3D441A] border-[#3D441A] hover:bg-[#3D441A]/90'
+                              : 'border-gray-300 hover:border-[#3D441A] hover:text-[#3D441A]'
                               }`}
                           >
                             {question.correctAnswer === optionIndex ? 'Correct' : 'Select'}
@@ -687,18 +699,7 @@ Correct: B`}
           </div>
         </div>
 
-        <Card size="small" className="bg-[#3D441A]/5 border-[#3D441A]/20">
-          <div className="text-[#3D441A]">
-            <h4 className="font-semibold mb-2">Exam Summary</h4>
-            <p>• {questions.length} question{questions.length !== 1 ? 's' : ''}</p>
-            <p>• Multiple choice format (A, B, C, D)</p>
-            <p>• Course: {storedTitle || 'Not selected'}</p>
-            <p>• User: {address ? 'Connected' : 'Not connected'}</p>
-            <p className="text-sm text-green-600 mt-2">
-              💡 Tip: Use numbered questions in the template for better organization!
-            </p>
-          </div>
-        </Card>
+
 
         <motion.div
           className="sticky h-40  bg-[#FFFDD0] pt-8 pb-2 border-t border-[#3D441A]/10"
@@ -715,15 +716,15 @@ Correct: B`}
             }
             loading={isCreating}
             style={{
-              height : "50px"
+              height: "50px"
             }}
             className={`w-full h-16 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D441A] focus:ring-offset-2 focus:ring-offset-[#FFFDD0] transition-all duration-200 font-semibold text-lg ${courseId === null ||
-                courseId === undefined ||
-                isCreating ||
-                questions.some(q => !q.text.trim() || q.options.some(opt => !opt.trim())) ||
-                !address
-                ? '  cursor-not-allowed border-2 border-[#3D441A]'
-                : 'bg-[#3D441A] text-[#FFFDD0] hover:bg-[#3D441A]/90 cursor-pointer'
+              courseId === undefined ||
+              isCreating ||
+              questions.some(q => !q.text.trim() || q.options.some(opt => !opt.trim())) ||
+              !address
+              ? '  cursor-not-allowed border-2 border-[#3D441A]'
+              : 'bg-[#3D441A] text-[#FFFDD0] hover:bg-[#3D441A]/90 cursor-pointer'
               }`}
           >
             {isCreating ? (
