@@ -27,8 +27,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Proof Somnia DApp",
-  description: "Decentralized education platform with blockchain-verified certificates",
+  title: "Proof Somnia",
+  description: "Decentralized education platform with blockchain-verified certificates on somnia network.",
 };
 
 export default function RootLayout({
