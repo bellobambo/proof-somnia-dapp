@@ -20,11 +20,13 @@ import { motion } from 'framer-motion'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ExamDrawer from './ExamDrawer'
+import PastQuestionsDrawer from './PastQuestionsDrawer'
 
 export default function ExamsList() {
   const { address, isConnected } = useAccount()
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [isExamDrawerOpen, setIsExamDrawerOpen] = useState(false)
+  const [isPastQuestionsDrawerOpen, setIsPastQuestionsDrawerOpen] = useState(false)
 
   const { data: user } = useGetUser(address as `0x${string}`)
   const isTutor = user?.role === UserRole.TUTOR
@@ -66,7 +68,7 @@ export default function ExamsList() {
   const ExamCard = ({ exam, index }: { exam: Exam; index: number }) => {
     const examStatus = useMemo(() => {
       if (isTutor) return null
-      return examsWithStatus.find(item => 
+      return examsWithStatus.find(item =>
         item.exam.examId.toString() === exam.examId.toString()
       )
     }, [examsWithStatus, exam.examId, isTutor])
@@ -88,7 +90,7 @@ export default function ExamsList() {
 
     const totalQuestions = Number(exam.questionCount)
 
-    const scorePercentage = totalQuestions > 0 
+    const scorePercentage = totalQuestions > 0
       ? calculatePercentageScore(rawScore, BigInt(totalQuestions))
       : 0
 
@@ -223,9 +225,7 @@ export default function ExamsList() {
                   className="bg-green-600 h-full rounded-full"
                 />
               </div>
-              <div className="mt-1 text-xs text-green-600 text-center">
-                Grade: {getGradeLetter(scorePercentage)}
-              </div>
+
             </div>
           </div>
         )}
@@ -241,7 +241,7 @@ export default function ExamsList() {
           </div>
         )}
 
-        {!isTutor && scoreError && (
+        {/* {!isTutor && scoreError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
             <p className="text-red-700 text-xs flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,7 +250,7 @@ export default function ExamsList() {
               Error loading results
             </p>
           </div>
-        )}
+        )} */}
         {!isTutor && isLoadingResults && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
             <div className="flex items-center gap-2 text-gray-600 text-sm">
@@ -281,7 +281,25 @@ export default function ExamsList() {
             </motion.button>
           )}
 
-   
+
+          {!isTutor && exam.isActive && isCompleted && !isLoadingResults && (
+            <motion.button
+              onClick={() => {
+                setSelectedExam(exam)
+                setIsPastQuestionsDrawerOpen(true)
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-[#3D441A] text-[#FFFDD0] hover:bg-[#3D441A]/90 py-3 px-4 rounded-lg transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm mt-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Access Past Questions
+            </motion.button>
+          )}        
+
+
           {!isTutor && exam.isActive && isCompleted && !isLoadingResults && (
             <div className="text-center text-xs text-gray-500 mt-2">
               ✓ You have completed this exam
@@ -393,6 +411,15 @@ export default function ExamsList() {
           setSelectedExam(null)
         }}
         onExamCompleted={handleExamCompleted}
+      />
+
+      <PastQuestionsDrawer
+        exam={selectedExam}
+        isOpen={isPastQuestionsDrawerOpen}
+        onClose={() => {
+          setIsPastQuestionsDrawerOpen(false)
+          setSelectedExam(null)
+        }}
       />
     </div>
   )
