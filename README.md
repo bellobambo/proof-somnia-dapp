@@ -1,6 +1,6 @@
 # Proof Education DApp
 
-A decentralized education platform built with Next.js and integrated with the ProofSmartContract on Ethereum. This application allows users to register as students or tutors, enroll in courses, and take blockchain-verified exams.
+A decentralized education platform built with Next.js and integrated with the ProofSmartContract on Somnia. This application allows users to register as students or tutors, enroll in courses, and take blockchain-verified exams.
 
 ## Features
 
