@@ -178,7 +178,7 @@ export function UserStatus() {
                 <span className="text-xs text-[#3D441A]/40">Connected</span>
                 <button
                   onClick={handleDisconnect}
-                  className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
+          className="px-2 py-1.5 bg-[#3D441A] text-[#FFFDD0] text-[14px] rounded-lg cursor-pointer transition-colors"
                 >
                   Disconnect
                 </button>
@@ -245,7 +245,7 @@ export function UserStatusCompact() {
           </span>
           <button
             onClick={handleDisconnect}
-            className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
+          className="px-2 py-1.5 bg-[#3D441A] text-[#FFFDD0] text-[14px] rounded-lg cursor-pointer transition-colors"
           >
             Disconnect
           </button>
