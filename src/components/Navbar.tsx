@@ -39,7 +39,7 @@ export function UserStatus() {
           <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
           <div>
             <p className="text-sm font-medium text-[#3D441A]">Wallet Not Connected</p>
-            <p className="text-xs text-[#3D441A]/70">Please connect your wallet to view your status</p>
+            <p className="text-xs text-[#3D441A]/70">Please connect your wallet to Continue</p>
           </div>
         </div>
       </motion.div>
@@ -112,8 +112,14 @@ export function UserStatus() {
               <p className="text-sm font-medium text-[#3D441A] font-mono">
                 {formattedBalance} STT
               </p>
-              <p className="text-xs text-[#3D441A]/60">Balance</p>
             </div>
+            <button
+              onClick={copyToClipboard}
+              className="group flex cursor-pointer items-center gap-1 text-xs text-[#3D441A]/60 font-mono hover:text-[#3D441A] transition-colors"
+              title="Click to copy wallet address"
+            >
+              {address?.slice(0, 4)}...{address?.slice(-2)}
+            </button>
             <button
               onClick={handleDisconnect}
               className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
@@ -178,7 +184,7 @@ export function UserStatus() {
                 <span className="text-xs text-[#3D441A]/40">Connected</span>
                 <button
                   onClick={handleDisconnect}
-          className="px-2 py-1.5 bg-[#3D441A] text-[#FFFDD0] text-[14px] rounded-lg cursor-pointer transition-colors"
+                  className="px-2 py-1.5 bg-[#3D441A] text-[#FFFDD0] text-[14px] rounded-lg cursor-pointer transition-colors"
                 >
                   Disconnect
                 </button>
@@ -244,8 +250,15 @@ export function UserStatusCompact() {
             {formattedBalance} STT
           </span>
           <button
+            onClick={copyToClipboard}
+            className="group flex cursor-pointer items-center gap-1 text-xs text-[#3D441A]/60 font-mono hover:text-[#3D441A] transition-colors"
+            title="Click to copy wallet address"
+          >
+            {address?.slice(0, 4)}...{address?.slice(-2)}
+          </button>
+          <button
             onClick={handleDisconnect}
-          className="px-2 py-1.5 bg-[#3D441A] text-[#FFFDD0] text-[14px] rounded-lg cursor-pointer transition-colors"
+            className="px-2 py-1.5 bg-[#3D441A] text-[#FFFDD0] text-[14px] rounded-lg cursor-pointer transition-colors"
           >
             Disconnect
           </button>
