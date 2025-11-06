@@ -20,8 +20,23 @@ function TutorInfo({ tutorAddress }: { tutorAddress: `0x${string}` }) {
       <p className="text-[16px] text-[#3D441A]/80">
         Tutor: {tutorUser?.name || 'Unnamed Tutor'}
       </p>
-      <p className="text-[15px] text-[#3D441A]/60 font-mono">
+      <p
+        className="text-[15px] text-[#3D441A]/60 font-mono cursor-pointer hover:text-[#3D441A] transition-colors group"
+        onClick={() => {
+          navigator.clipboard.writeText(tutorAddress)
+          toast.success('Address copied to clipboard!')
+        }}
+        title="Click to copy address"
+      >
         Address: {tutorAddress.slice(0, 8)}...{tutorAddress.slice(-6)}
+        <svg
+          className="w-3 h-3 inline ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
       </p>
     </div>
   )
