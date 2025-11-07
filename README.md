@@ -24,7 +24,7 @@ npm install
 
 
 # Set environment variable
-NEXT_PUBLIC_WC_PROJECT_ID=292dcbb19eff62056ae180798f0378c7
+NEXT_PUBLIC_WC_PROJECT_ID=
 NEXT_PUBLIC_SOMNIA_TESTNET_RPC_URL=https://dream-rpc.somnia.network/
 
 # run application
