@@ -27,7 +27,9 @@ npm install
 NEXT_PUBLIC_WC_PROJECT_ID=
 NEXT_PUBLIC_SOMNIA_TESTNET_RPC_URL=https://dream-rpc.somnia.network/
 
-# run application
+# Run application
 npm run dev
+
+
 
 **Contract Address**: `0x51508a90A7B73bf3D7dD69b7327d515195623F64` 🌐
