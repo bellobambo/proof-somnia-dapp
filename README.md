@@ -15,4 +15,19 @@
 - 📊 **Results Tracking**: View completion status and immutable scores
 - 🔐 **Blockchain Verification**: All records permanently stored on-chain( Somnia Network)
 
+
+# Github Repo
+git clone https://github.com/bellobambo/proof-somnia-edu
+
+# Install dependencies
+npm install
+
+
+# Set environment variable
+NEXT_PUBLIC_WC_PROJECT_ID=292dcbb19eff62056ae180798f0378c7
+NEXT_PUBLIC_SOMNIA_TESTNET_RPC_URL=https://dream-rpc.somnia.network/
+
+# run application
+npm run dev
+
 **Contract Address**: `0x51508a90A7B73bf3D7dD69b7327d515195623F64` 🌐
