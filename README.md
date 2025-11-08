@@ -30,6 +30,13 @@ NEXT_PUBLIC_SOMNIA_TESTNET_RPC_URL=https://dream-rpc.somnia.network/
 # Run application
 npm run dev
 
+NOTE: Ensure you have metamask installed in your browser extension
+And add the Somnia Network with the details below
+
+RPC: 
+Chain ID: 50312
+Block Explorer: https://shannon-explorer.somnia.network/
+Symbol: STT
 
 
 **Contract Address**: `0x51508a90A7B73bf3D7dD69b7327d515195623F64` 🌐
