@@ -33,9 +33,12 @@ npm run dev
 NOTE: Ensure you have metamask installed in your browser extension
 And add the Somnia Network with the details below
 
-RPC: 
+RPC: https://dream-rpc.somnia.network
+
 Chain ID: 50312
-Block Explorer: https://shannon-explorer.somnia.network/
+
+Block Explorer: https://shannon-explorer.somnia.network
+
 Symbol: STT
 
 
