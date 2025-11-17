@@ -1,4 +1,4 @@
-# ProofSmartContract 📚
+# Proof 📚
 
 🎓 Proof is a Decentralized Learning Management System that Secures Educational Assessments Records On-chain. Tutors create courses and set multiple-choice exams, while students enroll and take assessments with scores permanently recorded on the blockchain making all Interaction tamper Proof. Proof is Built on the Somnia test network using Amazon kiro for creation of the hooks been used in the frontend with the contract ABI and Contract Address. ⛓️
 
