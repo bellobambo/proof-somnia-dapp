@@ -42,4 +42,8 @@ Block Explorer: https://shannon-explorer.somnia.network
 Symbol: STT
 
 
+ # Smart Contract Repo:
+[ https://github.com/bellobambo/ProofSmartContract-Somnia
+](https://github.com/bellobambo/ProofSmartContract-Somnia) 
+
 **Contract Address**: `0x51508a90A7B73bf3D7dD69b7327d515195623F64` 🌐
